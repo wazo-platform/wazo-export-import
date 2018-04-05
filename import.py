@@ -5,7 +5,6 @@ import json
 import sys
 import requests
 
-from itertools import izip_longest
 from StringIO import StringIO
 from xivo_auth_client import Client as Auth
 from xivo_confd_client import Client as Confd
