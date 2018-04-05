@@ -29,8 +29,12 @@ users = StringIO(confd.users.export_csv())
 reader = csv.DictReader(users, delimiter=',', quotechar='"')
 exported_users = [row for row in reader]
 
+# Entity fields are missing
+# Entity/context relations are missing
+
 print json.dumps(
     {
+        'callpermissions': confd.call_permissions.list(),
         'entities': confd.entities.list(),
         'contexts': confd.contexts.list(),
         'devices': confd.devices.list(),
