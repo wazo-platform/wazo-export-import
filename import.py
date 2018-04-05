@@ -108,4 +108,13 @@ def import_users(users):
 
 import_users(import_data['users'])
 
+
+def import_groups(groups):
+    print 'importing groups'
+    for group in groups:
+        confd.groups.create(group)
+
+
+# import_groups(import_data['groups'])
+
 confd.configuration.live_reload.update(live_reload_status)
