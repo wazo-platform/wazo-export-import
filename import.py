@@ -97,6 +97,9 @@ def import_users(users):
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
     writer.writeheader()
     for user in users:
+        if user['uuid'] == '45b924f7-67c0-4051-988c-27521a31116e':
+            print 'skipping user', user
+            continue
         writer.writerow(user)
 
     print 'importing...'
