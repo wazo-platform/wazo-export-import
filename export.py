@@ -38,6 +38,7 @@ print json.dumps(
         'entities': confd.entities.list(),
         'contexts': confd.contexts.list(),
         'devices': confd.devices.list(),
+        'lines': confd.lines.list(),
         'groups': confd.groups.list(),
         'pagings': confd.pagings.list(),
         'incalls': confd.incalls.list(),
