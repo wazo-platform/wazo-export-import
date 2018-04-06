@@ -4,6 +4,7 @@ import csv
 import json
 import sys
 import requests
+import psycopg2
 
 from StringIO import StringIO
 from xivo_auth_client import Client as Auth
@@ -13,6 +14,7 @@ username = "test"
 password = "test"
 backend = "xivo_service"
 server = "localhost"
+DB_URI = 'postgresql://asterisk:proformatique@localhost/asterisk'
 
 
 def get_token():
@@ -22,7 +24,7 @@ def get_token():
 
 
 def get_confd(token):
-    return Confd(server, verify_certificate=False, token=token)
+    return Confd(server, verify_certificate=False, token=token, timeout=60)
 
 token = get_token()
 confd = get_confd(token)
@@ -35,6 +37,9 @@ live_reload_status = confd.configuration.live_reload.get()
 confd.configuration.live_reload.update({'enabled': False})
 
 
+valid_entities = []
+
+
 def import_entities(entities):
     print 'importing entities'
     id_map = {}
@@ -43,6 +48,7 @@ def import_entities(entities):
         # TODO add missing fields (address, description, etc)
         body = {'name': entity['name'],
                 'display_name': entity['display_name']}
+        valid_entities.append(entity['name'])
         try:
             created = confd.entities.create(body)
         except requests.exceptions.HTTPError:
@@ -55,20 +61,47 @@ def import_entities(entities):
 entity_map = import_entities(import_data['entities']['items'])
 
 
+def guess_entity_from_context(name):
+    prefix, end = name.split('-', 1)
+    if prefix in valid_entities:
+        return prefix
+
+    for entity in valid_entities:
+        modified_name = entity.replace('_', '')
+        if modified_name == prefix:
+            return entity
+
+    if name.startswith('022-221sap-'):
+        return '022psg'
+
+
 def import_contexts(contexts):
     print 'importing contexts'
+    context_entity_map = {}
     for context in contexts:
         print context
         try:
-            confd.contexts.create(context)
+            created_context = confd.contexts.create(context)
+            entity_name = guess_entity_from_context(context['name'])
+            if not entity_name:
+                print 'could not find a matching a entity for context', context
+                continue
+            context_entity_map[created_context['id']] = entity_name
         except requests.exceptions.HTTPError as e:
             print e
             print 'error while importing context', context
 
-    # TODO associate to the entity
+    print 'setting context entities'
+    print context_entity_map
+    conn = psycopg2.connect(DB_URI)
+    with conn:
+        with conn.cursor() as cursor:
+            for id_, entity in context_entity_map.iteritems():
+                query = 'UPDATE context SET entity=%s WHERE id = %s'
+                cursor.execute(query, (entity, id_))
 
 
-import_contexts(import_data['contexts']['items'])
+# import_contexts(import_data['contexts']['items'])
 
 
 def import_call_permissions(permissions):
