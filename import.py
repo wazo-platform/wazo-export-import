@@ -138,13 +138,60 @@ def import_users(users):
     confd.users.import_csv(csvfile.getvalue(), timeout=3600 * 5)
     print 'done'
 
-import_users(import_data['users'])
+
+#import_users(import_data['users'])
+current_users = confd.users.list()['items']
+user_map = {}
+for user in current_users:
+    firstname = user['firstname']
+    if firstname not in user_map:
+        user_map[firstname] = []
+
+    user_map[firstname].append(
+        {
+            'id': user['id'],
+            'uuid': user['uuid'],
+            'firstname': firstname,
+            'lastname': user['lastname'],
+        }
+    )
+
+
+def find_user_by_name(firstname, lastname):
+    users = user_map.get(firstname)
+    if not users:
+        return
+
+    for user in users:
+        if user['lastname'] == lastname:
+            return user
 
 
 def import_groups(groups):
     print 'importing groups'
+
     for group in groups:
-        confd.groups.create(group)
+        created_group = confd.groups.create(group)
+
+        for extension in group['extensions']:
+            created_extension = confd.extensions.create(extension)
+            confd.groups(created_group['id']).add_extension(created_extension['id'])
+
+        updated_users = []
+        for user in group['members']['users']:
+            created_user = find_user_by_name(user['firstname'], user['lastname'])
+            if not created_user:
+                print 'not adding user to group', user
+                continue
+            user['uuid'] = created_user['uuid']
+            updated_users.append(user)
+
+        confd.groups(created_group['id']).update_user_members(updated_users)
+
+        # TODO add fallbacks
+
+
+import_groups(import_data['groups']['items'])
 
 
 # import_groups(import_data['groups'])
