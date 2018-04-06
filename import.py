@@ -6,6 +6,7 @@ import sys
 import requests
 import psycopg2
 
+from pprint import pprint
 from StringIO import StringIO
 from xivo_auth_client import Client as Auth
 from xivo_confd_client import Client as Confd
@@ -101,7 +102,7 @@ def import_contexts(contexts):
                 cursor.execute(query, (entity, id_))
 
 
-# import_contexts(import_data['contexts']['items'])
+import_contexts(import_data['contexts']['items'])
 
 
 def import_call_permissions(permissions):
@@ -115,7 +116,7 @@ def import_call_permissions(permissions):
             print 'error while importing call permission', permission
 
 
-import_call_permissions(import_data['callpermissions']['items'])
+#import_call_permissions(import_data['callpermissions']['items'])
 
 
 def import_users(users):
@@ -167,6 +168,20 @@ def find_user_by_name(firstname, lastname):
             return user
 
 
+def get_updated_user_list_by_name(users):
+    updated_users = []
+
+    for user in users:
+        created_user = find_user_by_name(user['firstname'], user['lastname'])
+        if not created_user:
+            print 'not adding user to group', user
+            continue
+        user['uuid'] = created_user['uuid']
+        updated_users.append(user)
+
+    return updated_users
+
+
 def import_groups(groups):
     print 'importing groups'
 
@@ -177,23 +192,28 @@ def import_groups(groups):
             created_extension = confd.extensions.create(extension)
             confd.groups(created_group['id']).add_extension(created_extension['id'])
 
-        updated_users = []
-        for user in group['members']['users']:
-            created_user = find_user_by_name(user['firstname'], user['lastname'])
-            if not created_user:
-                print 'not adding user to group', user
-                continue
-            user['uuid'] = created_user['uuid']
-            updated_users.append(user)
-
+        updated_users = get_updated_user_list_by_name(group['members']['users'])
         confd.groups(created_group['id']).update_user_members(updated_users)
 
         # TODO add fallbacks
 
 
-import_groups(import_data['groups']['items'])
+#import_groups(import_data['groups']['items'])
 
 
-# import_groups(import_data['groups'])
+def import_pagings(pagings):
+    print 'importing pagings'
+
+    for paging in pagings:
+        created_paging = confd.pagings.create(paging)
+
+        updated_callers = get_updated_user_list_by_name(paging['callers']['users'])
+        updated_members = get_updated_user_list_by_name(paging['members']['users'])
+
+        confd.pagings(created_paging['id']).update_user_members(updated_members)
+        confd.pagings(created_paging['id']).update_user_callers(updated_callers)
+
+
+import_pagings(import_data['pagings']['items'])
 
 confd.configuration.live_reload.update(live_reload_status)
