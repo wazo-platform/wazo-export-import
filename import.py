@@ -214,6 +214,44 @@ def import_pagings(pagings):
         confd.pagings(created_paging['id']).update_user_callers(updated_callers)
 
 
-import_pagings(import_data['pagings']['items'])
+#import_pagings(import_data['pagings']['items'])
+line_by_device_id = {}
+for line in import_data['lines']['items']:
+    line_by_device_id[line['device_id']] = line
+
+
+def find_line_by_device_id(device_id):
+    return line_by_device_id.get(device_id)
+
+
+current_lines = confd.lines.list()['items']
+line_by_proto_name = {}
+for line in current_lines:
+    line_by_proto_name[(line['protocol'], line['name'])] = line
+
+
+def find_line_by_proto_name(protocol, name):
+    return line_by_proto_name.get((protocol, name))
+
+
+def import_devices(devices):
+    print 'importing devices'
+
+    for device in devices:
+        created_device = confd.devices.create(device)
+
+        matching_line = find_line_by_device_id(device['id'])
+        if not matching_line:
+            # The device was not associated
+            continue
+
+        line = find_line_by_proto_name(matching_line['protocol'], matching_line['name'])
+        if not line:
+            # The line was not associated to a user and has not been imported
+            continue
+
+        confd.devices(created_device['id']).add_line(line['id'])
+
+import_devices(import_data['devices']['items'])
 
 confd.configuration.live_reload.update(live_reload_status)
