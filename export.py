@@ -44,5 +44,6 @@ print json.dumps(
         'incalls': confd.incalls.list(),
         'lines': confd.lines.list(),
         'users': exported_users,
+        'voicemails': confd.voicemails.list(),
     }
 )
