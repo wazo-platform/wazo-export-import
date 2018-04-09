@@ -26,6 +26,12 @@ acl: confd.#
 
 Create the required voicemail timezone in voicemail general.
 
+Install all used provisioning plugins
+
+```sh
+cat wazo.data | jq '.devices.items[] | .plugin' | sort -u
+```
+
 Take a snapshot before importing
 
 Import all data.
