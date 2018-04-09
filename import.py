@@ -39,6 +39,7 @@ confd.configuration.live_reload.update({'enabled': False})
 
 
 valid_entities = []
+imported_voicemails = set()
 
 
 def import_entities(entities):
@@ -256,6 +257,7 @@ def import_devices(devices):
 
 
 def import_incalls(incalls):
+    print 'importing incalls'
     for incall in incalls:
         created_incall = confd.incalls.create(incall)
         for extension in incall['extensions']:
@@ -263,6 +265,40 @@ def import_incalls(incalls):
             confd.incalls(created_incall['id']).add_extension(created_exten)
 
 
-import_incalls(import_data['incalls']['items'])
+#import_incalls(import_data['incalls']['items'])
+
+
+existing_voicemails = confd.voicemails.list()
+for voicemail in existing_voicemails['items']:
+    imported_voicemails.add((voicemail['number'], voicemail['context']))
+
+
+def import_voicemails(voicemails):
+    print 'importing voicemails'
+    for voicemail in voicemails:
+        # password "" is not valid set to None instead
+        voicemail['password'] = voicemail['password'] or None
+
+        num_ctx = (voicemail['number'], voicemail['context'])
+        if num_ctx in imported_voicemails:
+            continue
+
+        try:
+            created_voicemail = confd.voicemails.create(voicemail)
+        except Exception as e:
+            print e
+            print 'skipping voicemail', voicemail
+            continue
+
+        imported_voicemails.add(num_ctx)
+        for user in voicemail['users']:
+            user = find_user_by_name(user['firstname'], user['lastname'])
+            if not user:
+                print 'failed to assign', user, 'to', voicemail
+                continue
+            confd.voicemails(created_voicemail['id']).add_user(user['id'])
+
+
+import_voicemails(import_data['voicemails']['items'])
 
 confd.configuration.live_reload.update(live_reload_status)
