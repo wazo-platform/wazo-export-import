@@ -317,7 +317,6 @@ def import_voicemails(voicemails):
         for user in voicemail['users']:
             user = find_user_by_name(user['firstname'], user['lastname'])
             if not user:
-                print 'failed to assign', user, 'to', voicemail
                 continue
             confd.voicemails(created_voicemail['id']).add_user(user['id'])
 
