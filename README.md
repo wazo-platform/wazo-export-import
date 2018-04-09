@@ -30,8 +30,9 @@ Take a snapshot before importing
 
 Import all data.
 
+```sh
 ./import.py wazo.data
-
+```
 
 Import other custom sql scripts
 

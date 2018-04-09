@@ -80,7 +80,6 @@ def import_contexts(contexts):
     print 'importing contexts'
     context_entity_map = {}
     for context in contexts:
-        print context
         try:
             created_context = confd.contexts.create(context)
             entity_name = guess_entity_from_context(context['name'])
@@ -108,7 +107,6 @@ import_contexts(import_data['contexts']['items'])
 def import_call_permissions(permissions):
     print 'importing call permissions'
     for permission in permissions:
-        print permission
         try:
             confd.call_permissions.create(permission)
         except requests.exceptions.HTTPError as e:
