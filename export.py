@@ -7,10 +7,10 @@ from StringIO import StringIO
 from xivo_auth_client import Client as Auth
 from xivo_confd_client import Client as Confd
 
-username = "test"
-password = "test"
+username = "export"
+password = "export123"
 backend = "xivo_service"
-server = "10.37.0.254"
+server = "localhost"
 
 
 def get_token():

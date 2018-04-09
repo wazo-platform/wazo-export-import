@@ -6,13 +6,12 @@ import sys
 import requests
 import psycopg2
 
-from pprint import pprint
 from StringIO import StringIO
 from xivo_auth_client import Client as Auth
 from xivo_confd_client import Client as Confd
 
-username = "test"
-password = "test"
+username = "import"
+password = "import123"
 backend = "xivo_service"
 server = "localhost"
 DB_URI = 'postgresql://asterisk:proformatique@localhost/asterisk'
@@ -117,7 +116,7 @@ def import_call_permissions(permissions):
             print 'error while importing call permission', permission
 
 
-#import_call_permissions(import_data['callpermissions']['items'])
+import_call_permissions(import_data['callpermissions']['items'])
 
 
 def import_users(users):
@@ -141,7 +140,7 @@ def import_users(users):
     print 'done'
 
 
-#import_users(import_data['users'])
+import_users(import_data['users'])
 current_users = confd.users.list()['items']
 user_map = {}
 for user in current_users:
@@ -199,7 +198,7 @@ def import_groups(groups):
         # TODO add fallbacks
 
 
-#import_groups(import_data['groups']['items'])
+import_groups(import_data['groups']['items'])
 
 
 def import_pagings(pagings):
@@ -215,7 +214,7 @@ def import_pagings(pagings):
         confd.pagings(created_paging['id']).update_user_callers(updated_callers)
 
 
-#import_pagings(import_data['pagings']['items'])
+import_pagings(import_data['pagings']['items'])
 line_by_device_id = {}
 for line in import_data['lines']['items']:
     line_by_device_id[line['device_id']] = line
@@ -253,7 +252,7 @@ def import_devices(devices):
 
         confd.devices(created_device['id']).add_line(line['id'])
 
-#import_devices(import_data['devices']['items'])
+import_devices(import_data['devices']['items'])
 
 
 def import_incalls(incalls):
@@ -265,7 +264,7 @@ def import_incalls(incalls):
             confd.incalls(created_incall['id']).add_extension(created_exten)
 
 
-#import_incalls(import_data['incalls']['items'])
+import_incalls(import_data['incalls']['items'])
 
 
 existing_voicemails = confd.voicemails.list()
