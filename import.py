@@ -117,8 +117,29 @@ def import_call_permissions(permissions):
 import_call_permissions(import_data['callpermissions']['items'])
 
 
+multi_user_vm = set()
+for voicemail in import_data['voicemails']['items']:
+    if len(voicemail['users']) > 1:
+        multi_user_vm.add((voicemail['number'], voicemail['context']))
+
+
+def is_multi_user_vm(number, context):
+    return (number, context) in multi_user_vm
+
+
 def import_users(users):
     print 'importing users'
+    no_vm_fields = {
+        'voicemail_ask_password': '',
+        'voicemail_attach_audio': '',
+        'voicemail_context': '',
+        'voicemail_delete_messages': '',
+        'voicemail_email': '',
+        'voicemail_name': '',
+        'voicemail_number': '',
+        'voicemail_password': '',
+    }
+
     for user in users:
         user['entity_id'] = entity_map[int(user['entity_id'])]
 
@@ -131,6 +152,11 @@ def import_users(users):
         if user['uuid'] == '45b924f7-67c0-4051-988c-27521a31116e':
             print 'skipping user', user
             continue
+
+        if is_multi_user_vm(user['voicemail_number'], user['voicemail_context']):
+            # The import does not work well with multi user imports
+            user.update(no_vm_fields)
+
         writer.writerow(user)
 
     print 'importing...'
