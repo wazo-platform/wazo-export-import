@@ -252,6 +252,17 @@ def import_devices(devices):
 
         confd.devices(created_device['id']).add_line(line['id'])
 
-import_devices(import_data['devices']['items'])
+#import_devices(import_data['devices']['items'])
+
+
+def import_incalls(incalls):
+    for incall in incalls:
+        created_incall = confd.incalls.create(incall)
+        for extension in incall['extensions']:
+            created_exten = confd.extensions.create(extension)
+            confd.incalls(created_incall['id']).add_extension(created_exten)
+
+
+import_incalls(import_data['incalls']['items'])
 
 confd.configuration.live_reload.update(live_reload_status)
