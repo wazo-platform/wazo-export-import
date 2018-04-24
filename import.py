@@ -76,20 +76,46 @@ def guess_entity_from_context(name):
         return '022psg'
 
 
+def _build_merged_context(existing, new):
+    ranges = ('user_ranges', 'conference_room_ranges', 'group_ranges', 'queue_ranges', 'incall_ranges')
+    for range_ in ranges:
+        existing[range_].extend(new[range_])
+    return existing
+
+
 def import_contexts(contexts):
     print 'importing contexts'
     context_entity_map = {}
+    excluded = ('__switchboard_directory', '__switchboard')
+
     for context in contexts:
+        if context['name'] in excluded:
+            continue
+
         try:
+            # Create the context
             created_context = confd.contexts.create(context)
-            entity_name = guess_entity_from_context(context['name'])
-            if not entity_name:
-                print 'could not find a matching a entity for context', context
-                continue
-            context_entity_map[created_context['id']] = entity_name
-        except requests.exceptions.HTTPError as e:
-            print e
-            print 'error while importing context', context
+        except requests.exceptions.HTTPError:
+            created_context = None
+
+            # On fail tries to match an existing context and update it
+            response = confd.contexts.list(search=context['name'])
+            if response['total'] == 0:
+                raise
+
+            if response['total'] > 1:
+                raise Exception('Two context with the same name')
+
+            matching = [ctx for ctx in response['items'] if ctx['name'] == context['name']]
+            created_context = _build_merged_context(matching[0], context)
+            confd.contexts.update(created_context)
+
+        entity_name = guess_entity_from_context(context['name'])
+        if not entity_name:
+            print 'could not find a matching a entity for context', context
+            continue
+
+        context_entity_map[created_context['id']] = entity_name
 
     print 'setting context entities'
     print context_entity_map
