@@ -175,7 +175,7 @@ def import_users(users):
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
     writer.writeheader()
     for user in users:
-        if user['uuid'] == '45b924f7-67c0-4051-988c-27521a31116e':
+        if user['uuid'] == '45b924f7-67c0-4051-988c-27521a31116e' or user['username'] == 'ovachon':
             print 'skipping user', user
             continue
 
@@ -265,6 +265,7 @@ def import_pagings(pagings):
 
 
 import_pagings(import_data['pagings']['items'])
+
 line_by_device_id = {}
 for line in import_data['lines']['items']:
     line_by_device_id[line['device_id']] = line
