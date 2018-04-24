@@ -305,7 +305,11 @@ def import_devices(devices):
             # The line was not associated to a user and has not been imported
             continue
 
-        confd.devices(created_device['id']).add_line(line['id'])
+        try:
+            confd.devices(created_device['id']).add_line(line['id'])
+        except requests.exceptions.HTTPError as e:
+            print 'error while associating device', created_device['id'], 'to line', line['id']
+            print e
 
 import_devices(import_data['devices']['items'])
 
