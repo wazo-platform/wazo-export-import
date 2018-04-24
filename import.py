@@ -236,7 +236,11 @@ def import_groups(groups):
     print 'importing groups'
 
     for group in groups:
-        created_group = confd.groups.create(group)
+        try:
+            created_group = confd.groups.create(group)
+        except requests.exceptions.HTTPError:
+            print 'group already exist', group['name'], 'skipping'
+            continue
 
         for extension in group['extensions']:
             created_extension = confd.extensions.create(extension)
