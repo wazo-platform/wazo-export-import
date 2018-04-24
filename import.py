@@ -317,10 +317,25 @@ import_devices(import_data['devices']['items'])
 def import_incalls(incalls):
     print 'importing incalls'
     for incall in incalls:
-        created_incall = confd.incalls.create(incall)
+        extens = []
+
         for extension in incall['extensions']:
-            created_exten = confd.extensions.create(extension)
-            confd.incalls(created_incall['id']).add_extension(created_exten)
+            try:
+                created_exten = confd.extensions.create(extension)
+                extens.append(created_exten)
+            except requests.exceptions.HTTPError as e:
+                print 'Failed to create extension', extension['exten'], 'for incall', incall
+                print e
+
+        try:
+            created_incall = confd.incalls.create(incall)
+        except requests.exceptions.HTTPError as e:
+            print 'error creating incall', incall
+            print e
+            continue
+
+        for exten in extens:
+            confd.incalls(created_incall['id']).add_extension(exten)
 
 
 import_incalls(import_data['incalls']['items'])
