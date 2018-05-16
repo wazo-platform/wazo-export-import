@@ -289,29 +289,47 @@ def find_line_by_proto_name(protocol, name):
     return line_by_proto_name.get((protocol, name))
 
 
-def import_devices(devices):
+def import_devices(devices, lines):
     print 'importing devices'
+    device_to_line = {}
+    for line in lines:
+        device_id = line.get('device_id')
+        if not device_id:
+            continue
+
+        device_to_line[device_id] = line
 
     for device in devices:
         created_device = confd.devices.create(device)
 
-        matching_line = find_line_by_device_id(device['id'])
-        if not matching_line:
+        matching_old_line = device_to_line.get(device['id'])
+        if not matching_old_line:
             # The device was not associated
+            print 'Could not find matching line for', device
             continue
 
-        line = find_line_by_proto_name(matching_line['protocol'], matching_line['name'])
-        if not line:
-            # The line was not associated to a user and has not been imported
+        matching_users = matching_old_line['users']
+        if not matching_users:
+            print 'No matching user'
             continue
 
-        try:
-            confd.devices(created_device['id']).add_line(line['id'])
-        except requests.exceptions.HTTPError as e:
-            print 'error while associating device', created_device['id'], 'to line', line['id']
-            print e
+        old_user = matching_users[0]
+        user = find_user_by_name(old_user['firstname'], old_user['lastname'])
+        if not user:
+            continue
 
-import_devices(import_data['devices']['items'])
+        lines = confd.users(user).list_lines()['items']
+        for line in lines:
+            try:
+                confd.devices(created_device['id']).add_line(line['line_id'])
+            except requests.exceptions.HTTPError as e:
+                print 'error while associating device', created_device['id'], 'to line', line['line_id']
+                print e
+
+import_devices(
+    import_data['devices']['items'],
+    import_data['lines']['items'],
+)
 
 
 def import_incalls(incalls):
