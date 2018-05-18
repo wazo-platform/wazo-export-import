@@ -130,6 +130,37 @@ def import_contexts(contexts):
 import_contexts(import_data['contexts']['items'])
 
 
+def import_outcalls(outcalls):
+    print 'importing outgoing calls'
+    for outcall in outcalls:
+        try:
+            created_outcall = confd.outcalls.create(outcall)
+        except requests.exceptions.HTTPError as e:
+            print e
+            continue
+
+        for extension in outcall['extensions']:
+            try:
+                exten = confd.extensions.create(extension)
+            except requests.exceptions.HTTPError as e:
+                print e
+                continue
+
+            try:
+                args = {}
+                for field in ('prefix', 'external_prefix', 'strip_digits', 'caller_id'):
+                    value = extension.get(field)
+                    if value:
+                        args[field] = extension[field]
+
+                confd.outcalls(created_outcall).add_extension(exten, **args)
+            except requests.exceptions.HTTPError as e:
+                print e
+
+
+import_outcalls(import_data['outcalls']['items'])
+
+
 def import_call_permissions(permissions):
     print 'importing call permissions'
     for permission in permissions:
