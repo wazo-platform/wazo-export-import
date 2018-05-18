@@ -118,7 +118,6 @@ def import_contexts(contexts):
         context_entity_map[created_context['id']] = entity_name
 
     print 'setting context entities'
-    print context_entity_map
     conn = psycopg2.connect(DB_URI)
     with conn:
         with conn.cursor() as cursor:
@@ -168,7 +167,6 @@ def import_call_permissions(permissions):
             confd.call_permissions.create(permission)
         except requests.exceptions.HTTPError as e:
             print e
-            print 'error while importing call permission', permission
 
 
 import_call_permissions(import_data['callpermissions']['items'])
@@ -354,7 +352,6 @@ def import_devices(devices, lines):
             try:
                 confd.devices(created_device['id']).add_line(line['line_id'])
             except requests.exceptions.HTTPError as e:
-                print 'error while associating device', created_device['id'], 'to line', line['line_id']
                 print e
 
 import_devices(
@@ -373,13 +370,11 @@ def import_incalls(incalls):
                 created_exten = confd.extensions.create(extension)
                 extens.append(created_exten)
             except requests.exceptions.HTTPError as e:
-                print 'Failed to create extension', extension['exten'], 'for incall', incall
                 print e
 
         try:
             created_incall = confd.incalls.create(incall)
         except requests.exceptions.HTTPError as e:
-            print 'error creating incall', incall
             print e
             continue
 
