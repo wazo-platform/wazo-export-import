@@ -42,6 +42,7 @@ print json.dumps(
         'groups': confd.groups.list(),
         'pagings': confd.pagings.list(),
         'incalls': confd.incalls.list(),
+        'outcalls': confd.outcalls.list(),
         'lines': confd.lines.list(),
         'users': exported_users,
         'voicemails': confd.voicemails.list(),
