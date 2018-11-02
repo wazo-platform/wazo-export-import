@@ -220,7 +220,7 @@ def import_users(users):
 
 
 import_users(import_data['users'])
-current_users = confd.users.list()['items']
+current_users = confd.users.list(recurse=True)['items']
 user_map = {}
 for user in current_users:
     firstname = user['firstname']
