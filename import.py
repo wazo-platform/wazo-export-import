@@ -7,8 +7,8 @@ import requests
 import psycopg2
 
 from StringIO import StringIO
-from xivo_auth_client import Client as Auth
-from xivo_confd_client import Client as Confd
+from wazo_auth_client import Client as Auth
+from wazo_confd_client import Client as Confd
 
 username = "import"
 password = "import123"
