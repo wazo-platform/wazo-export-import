@@ -26,6 +26,7 @@ def get_token():
 def get_confd(token):
     return Confd(server, verify_certificate=False, token=token, timeout=60)
 
+
 token = get_token()
 confd = get_confd(token)
 
@@ -47,8 +48,7 @@ def import_entities(entities):
 
     for entity in entities:
         # TODO add missing fields (address, description, etc)
-        body = {'name': entity['name'],
-                'display_name': entity['display_name']}
+        body = {'name': entity['name'], 'display_name': entity['display_name']}
         valid_entities.append(entity['name'])
         try:
             created = confd.entities.create(body)
@@ -58,6 +58,7 @@ def import_entities(entities):
         id_map[entity['id']] = created['id']
 
     return id_map
+
 
 entity_map = import_entities(import_data['entities']['items'])
 
@@ -77,7 +78,13 @@ def guess_entity_from_context(name):
 
 
 def _build_merged_context(existing, new):
-    ranges = ('user_ranges', 'conference_room_ranges', 'group_ranges', 'queue_ranges', 'incall_ranges')
+    ranges = (
+        'user_ranges',
+        'conference_room_ranges',
+        'group_ranges',
+        'queue_ranges',
+        'incall_ranges',
+    )
     for range_ in ranges:
         existing[range_].extend(new[range_])
     return existing
@@ -106,7 +113,9 @@ def import_contexts(contexts):
             if response['total'] > 1:
                 raise Exception('Two context with the same name')
 
-            matching = [ctx for ctx in response['items'] if ctx['name'] == context['name']]
+            matching = [
+                ctx for ctx in response['items'] if ctx['name'] == context['name']
+            ]
             created_context = _build_merged_context(matching[0], context)
             confd.contexts.update(created_context)
 
@@ -204,7 +213,10 @@ def import_users(users):
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
     writer.writeheader()
     for user in users:
-        if user['uuid'] == '45b924f7-67c0-4051-988c-27521a31116e' or user['username'] == 'ovachon':
+        if (
+            user['uuid'] == '45b924f7-67c0-4051-988c-27521a31116e'
+            or user['username'] == 'ovachon'
+        ):
             print 'skipping user', user
             continue
 
@@ -353,6 +365,7 @@ def import_devices(devices, lines):
                 confd.devices(created_device['id']).add_line(line['line_id'])
             except requests.exceptions.HTTPError as e:
                 print e
+
 
 import_devices(
     import_data['devices']['items'],

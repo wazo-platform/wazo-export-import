@@ -22,6 +22,7 @@ def get_token():
 def get_confd(token):
     return Confd(server, verify_certificate=False, token=token)
 
+
 token = get_token()
 confd = get_confd(token)
 
