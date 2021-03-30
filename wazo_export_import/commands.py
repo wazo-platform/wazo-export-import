@@ -1,0 +1,111 @@
+# Copyright 2021 The Wazo Authors  (see the AUTHORS file)
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+import csv
+import sys
+
+from cliff import command
+
+from .helpers.ods import DumpFile
+from .helpers.constants import RESOURCE_FIELDS
+
+
+class ListResources(command.Command):
+    def take_action(self, parsed_args):
+        return " ".join(RESOURCE_FIELDS.keys())
+
+
+class ListFields(command.Command):
+    def get_parser(self, *args, **kwargs):
+        parser = super().get_parser(*args, **kwargs)
+        relation = parser.add_mutually_exclusive_group(required=True)
+        for resource in RESOURCE_FIELDS.keys():
+            relation.add_argument(
+                "--{}".format(resource),
+                dest="resource",
+                action="store_const",
+                const=resource,
+            )
+        return parser
+
+    def take_action(self, parsed_args):
+        return " ".join(RESOURCE_FIELDS[parsed_args.resource].keys())
+
+
+class Add(command.Command):
+    def get_parser(self, *args, **kwargs):
+        parser = super().get_parser(*args, **kwargs)
+        relation = parser.add_mutually_exclusive_group(required=True)
+        for resource in RESOURCE_FIELDS.keys():
+            relation.add_argument(
+                "--{}".format(resource),
+                dest="resource",
+                action="store_const",
+                const=resource,
+            )
+        parser.add_argument(
+            "filename",
+            help="dump filename to the resources to",
+        )
+        return parser
+
+    def take_action(self, parsed_args):
+        reader = csv.DictReader(sys.stdin)
+        first_row = True
+        with DumpFile(parsed_args.filename) as dump_file:
+            for row in reader:
+                if first_row:
+                    self._validate_columns(parsed_args.resource, row)
+                    first_row = False
+                self._add_or_update_resource(dump_file, parsed_args.resource, row)
+
+    def _validate_columns(self, resource, row):
+        known_columns = set(RESOURCE_FIELDS[resource].keys())
+        user_supplied_columns = set(row.keys())
+
+        unknown_columns = user_supplied_columns - known_columns
+        if unknown_columns:
+            print(
+                'The following columns are invalid, check your columns using the "list fields --{}"'.format(
+                    resource
+                )
+            )
+            print("\t{}".format(",".join(unknown_columns)))
+
+    def _add_or_update_resource(self, dump_file, resource, row):
+        if resource == "ring_groups":
+            self._add_or_update_ring_group(dump_file, row)
+
+    def _add_or_update_ring_group(self, dump_file, row):
+        try:
+            index = self._find_matching_group(dump_file, row)
+            dump_file.update_row("ring_groups", index, row)
+        except LookupError:
+            dump_file.add_row("ring_groups", row)
+
+    def _find_matching_group(self, dump_file, row):
+        selections = [("ref",), ("label",)]
+        for unique_columns in selections:
+            row_has_all_columns = set(row.keys()).issuperset(set(unique_columns))
+            if row_has_all_columns:
+                pairs = [(key, row[key]) for key in unique_columns]
+                try:
+                    return dump_file.find_matching_row("ring_groups", pairs)
+                except LookupError:
+                    continue
+        raise LookupError("No group matching")
+
+
+class New(command.Command):
+    def get_parser(self, *args, **kwargs):
+        parser = super().get_parser(*args, **kwargs)
+        parser.add_argument(
+            "filename",
+            help="dump filename to the resources to",
+        )
+        return parser
+
+    def take_action(self, parsed_args):
+        with DumpFile(parsed_args.filename):
+            # Dump creation side effect
+            pass
