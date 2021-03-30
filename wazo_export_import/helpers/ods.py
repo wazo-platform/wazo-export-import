@@ -64,7 +64,7 @@ class DumpFile:
     def _pre_fill_columns(self):
         for tab, column_definitions in self._fields.items():
             self._add_tab_if_missing(tab)
-            for column in column_definitions.keys():
+            for column in column_definitions['fields'].keys():
                 self._add_columns_to_tab_if_missing(tab, column)
 
     def _row_matches(self, columns, row, pairs):

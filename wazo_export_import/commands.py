@@ -29,7 +29,7 @@ class ListFields(command.Command):
         return parser
 
     def take_action(self, parsed_args):
-        return " ".join(RESOURCE_FIELDS[parsed_args.resource].keys())
+        return " ".join(RESOURCE_FIELDS[parsed_args.resource]["fields"].keys())
 
 
 class Add(command.Command):
@@ -60,40 +60,31 @@ class Add(command.Command):
                 self._add_or_update_resource(dump_file, parsed_args.resource, row)
 
     def _validate_columns(self, resource, row):
-        known_columns = set(RESOURCE_FIELDS[resource].keys())
+        known_columns = set(RESOURCE_FIELDS[resource]["fields"].keys())
         user_supplied_columns = set(row.keys())
 
         unknown_columns = user_supplied_columns - known_columns
         if unknown_columns:
-            print(
-                'The following columns are invalid, check your columns using the "list fields --{}"'.format(
-                    resource
-                )
-            )
-            print("\t{}".format(",".join(unknown_columns)))
+            raise Exception("unknown columns {}".format(",".join(unknown_columns)))
 
     def _add_or_update_resource(self, dump_file, resource, row):
-        if resource == "ring_groups":
-            self._add_or_update_ring_group(dump_file, row)
-
-    def _add_or_update_ring_group(self, dump_file, row):
         try:
-            index = self._find_matching_group(dump_file, row)
-            dump_file.update_row("ring_groups", index, row)
+            index = self._find_matching_resource(dump_file, resource, row)
+            dump_file.update_row(resource, index, row)
         except LookupError:
-            dump_file.add_row("ring_groups", row)
+            dump_file.add_row(resource, row)
 
-    def _find_matching_group(self, dump_file, row):
-        selections = [("ref",), ("label",)]
+    def _find_matching_resource(self, dump_file, resource, row):
+        selections = RESOURCE_FIELDS[resource]["unique"]
         for unique_columns in selections:
             row_has_all_columns = set(row.keys()).issuperset(set(unique_columns))
             if row_has_all_columns:
                 pairs = [(key, row[key]) for key in unique_columns]
                 try:
-                    return dump_file.find_matching_row("ring_groups", pairs)
+                    return dump_file.find_matching_row(resource, pairs)
                 except LookupError:
                     continue
-        raise LookupError("No group matching")
+        raise LookupError("No resource matching")
 
 
 class New(command.Command):
