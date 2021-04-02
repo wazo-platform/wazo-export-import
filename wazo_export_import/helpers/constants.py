@@ -8,10 +8,16 @@ RESOURCE_FIELDS = {
             "call_transfer_enabled": {},
             "dtmf_hangup_enabled": {},
             "email": {},
-            "fallback_busy": {},
-            "fallback_congestion": {},
-            "fallback_fail": {},
-            "fallback_no_answer": {},
+            "fallback_busy": {},  # Dialaction
+            "fallback_congestion": {},  # Dialaction
+            "fallback_fail": {},  # Dialaction
+            "fallback_no_answer": {},  # Dialaction
+            "unconditional_forward_destination": {},
+            "unconditional_forward_enabled": {},
+            "busy_forward_destination": {},
+            "busy_forward_enabled": {},
+            "no_answer_forward_destination": {},
+            "no_answer_forward_enabled": {},
             "firstname": {},
             "language": {},
             "lastname": {},
@@ -34,8 +40,17 @@ RESOURCE_FIELDS = {
             "voicemail": {
                 "help": "A reference to a voicemail contained in this file",
             },
+            'description': {},
+            'music_on_hold': {},
+            'preprocess_subroutine': {},
+            'caller_id': {},
+            'timezone': {},
         },
-        "unique": [],
+        "unique": [
+            ('ref',),
+            # ('email',),  # email can be empty on an export
+            ('firstname', 'lastname',),
+        ],
     },
     # sudo -u postgres psql <DB> -c "select concat('grp-', groupfeatures.id) as ref, groupfeatures.name as label, groupfeatures.timeout as timeout, groupfeatures.preprocess_subroutine as preprocess_subroutine, case when groupfeatures.deleted = 0 then true when groupfeatures.deleted = 1 then false end as enabled, queue.musicclass as music_on_hold, queue.strategy as ring_strategy, queue.timeout as user_timeout, queue.ringinuse as ring_in_use, queue.retry as retry_delay from queue join groupfeatures on groupfeatures.name = queue.name  where category = 'group'"
     "ring_groups": {
