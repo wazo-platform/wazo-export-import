@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 RESOURCE_FIELDS = {
+    # SELECT uuid as ref, rightcallcode as call_permission_password, enablexfer as call_transfer_enabled, true as dtmf_hangup_enabled, email, destunc as unconditional_forward_destination, enableunc as unconditional_forward_enabled, destbusy as busy_forward_destination, enablebusy as busy_forward_enabled, destrna as no_answer_forward_destination, enablerna as no_answer_forward_enabled, firstname, lastname, language, mobilephonenumber as mobile_phone_number, outcallerid as outgoing_caller_id, passwdclient as password, callrecord as recording_incoming_external_enabled, callrecord as recording_incoming_internal_enabled, callrecord as recording_outgoing_external_enabled, callrecord as recording_outgoing_internal_enabled, ringseconds as  ring_seconds, simultcalls as simultaneous_calls, 1 as subscription_type, enablehint as supervision_enabled, userfield as userfield, loginclient as username, description, musiconhold as music_on_hold, preprocess_subroutine, callerid as caller_id, timezone FROM userfeatures;
     "users": {
         "fields": {
             "call_permission_password": {},
