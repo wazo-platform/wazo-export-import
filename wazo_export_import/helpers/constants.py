@@ -34,7 +34,7 @@ RESOURCE_FIELDS = {
             "recording_outgoing_external_enabled": {},
             "recording_outgoing_internal_enabled": {},
             "ref": {
-                "help": "A reference to this resource that can be used elsewhere in this dump file."
+                "help": "A reference to this resource that can be used elsewhere in this file."
             },
             "ring_seconds": {},
             "simultaneous_calls": {},
@@ -54,7 +54,7 @@ RESOURCE_FIELDS = {
         "unique": [
             ('ref',),
             # ('email',),  # email can be empty on an export
-            ('firstname', 'lastname',),
+            ('firstname', 'lastname'),
         ],
     },
     "ring_groups": {
@@ -69,7 +69,6 @@ RESOURCE_FIELDS = {
             "preprocess_subroutine": {},
             "timeout": {},
             "user_timeout": {},
-            "ring_strategy": {},
             "ring_in_use": {},
             "retry_delay": {},
             "music_on_hold": {},
@@ -107,9 +106,38 @@ RESOURCE_FIELDS = {
             "username": {},
             "password": {},
         },
-        "unique": [],
+        'unique': [],
     },
     "incalls": {"fields": {}, "unique": []},
-    "voicemails": {"fields": {}, "unique": []},
+    "voicemails": {
+        "fields": {
+            'ref': {},  # concat('vm-', uniqueid)
+            'name': {},  # fullname
+            'ask_password': {},  # ! skipcheckpass?
+            'attach_audio': {},  # attach
+            'context': {},  # context
+            'delete_messages': {},  # deletevoicemail
+            'email': {},  # email
+            'enabled': {},  # ! commented
+            'language': {},  # language
+            'max_messages': {},  # maxmsg
+            'number': {},  # mailbox
+            'options': {},  # Check the format here...
+            'pager': {},  # pager
+            'password': {},  # password
+            'timezone': {},  # tz Should be checked
+        },
+        "unique": [
+            ('ref',),
+            ('context', 'number'),
+        ],
+    },
     "contexts": {"fields": {}, "unique": []},
+    'voicemail_users': {
+        'fields': {
+            'user': {},
+            'voicemail': {},
+        },
+        'unique': [],
+    },
 }
