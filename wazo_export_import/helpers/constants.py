@@ -138,13 +138,4 @@ RESOURCE_FIELDS = {
         ],
     },
     "contexts": {"fields": {}, "unique": []},
-    'voicemail_users': {
-        'fields': {
-            'user': {},
-            'voicemail': {},
-        },
-        'unique': [
-            ('user', 'voicemail'),
-        ],
-    },
 }
