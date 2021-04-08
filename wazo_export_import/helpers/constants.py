@@ -85,7 +85,10 @@ RESOURCE_FIELDS = {
             "context": {},
             "extension": {},
         },
-        "unique": [],
+        "unique": [
+            ('group', 'user'),
+            ('group', 'context', 'extension'),
+        ],
     },
     "extensions": {
         "fields": {
@@ -106,7 +109,9 @@ RESOURCE_FIELDS = {
             "username": {},
             "password": {},
         },
-        'unique': [],
+        'unique': [
+            ('ref',),
+        ],
     },
     "incalls": {"fields": {}, "unique": []},
     "voicemails": {
@@ -138,6 +143,8 @@ RESOURCE_FIELDS = {
             'user': {},
             'voicemail': {},
         },
-        'unique': [],
+        'unique': [
+            ('user', 'voicemail'),
+        ],
     },
 }
