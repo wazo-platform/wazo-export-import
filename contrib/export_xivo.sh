@@ -37,6 +37,11 @@ sudo -u postgres psql --csv "${DB_NAME}" -c "select userfeatures.uuid as ref, ca
 echo "exporting ring groups"
 sudo -u postgres psql --csv "${DB_NAME}" -c "select concat('grp-', groupfeatures.id) as ref, groupfeatures.name as label, groupfeatures.timeout as timeout, groupfeatures.preprocess_subroutine as preprocess_subroutine, case when groupfeatures.deleted = 0 then true when groupfeatures.deleted = 1 then false end as enabled, queue.musicclass as music_on_hold, queue.strategy as ring_strategy, queue.timeout as user_timeout, queue.ringinuse as ring_in_use, queue.retry as retry_delay from queue join groupfeatures on groupfeatures.name = queue.name JOIN context ON groupfeatures.context = context.name JOIN entity ON entity.name = context.entity where category = 'group' AND entity.id = ${ENTITY_ID}" | ${DUMP} add --ring_groups "${OUTPUT}"
 
+echo "exporting ring group members"
+# User members
+sudo -u postgres psql --csv "${DB_NAME}" -c "SELECT concat('grp-', groupfeatures.id) AS group, userfeatures.uuid AS user FROM queuemember JOIN groupfeatures ON queuemember.queue_name = groupfeatures.name AND queuemember.category = 'group' JOIN userfeatures ON queuemember.usertype = 'user' AND queuemember.userid = userfeatures.id WHERE userfeatures.entityid = ${ENTITY_ID}" | ${DUMP} add --group_members "${OUTPUT}"
+# Extension members are not handled
+
 # Voicemails
 echo "exporting voicemails"
 sudo -u postgres psql --csv "${DB_NAME}" -c "select concat('vm-', voicemail.uniqueid) as ref, fullname as name, not cast(skipcheckpass as bool) as ask_password, attach as attach_audio, context, deletevoicemail as delete_messages, voicemail.email, not cast(voicemail.commented as bool) as enabled, language, maxmsg as max_messages, mailbox as number, options, pager, password, tz as timezone from voicemail JOIN context ON context.name = voicemail.context JOIN entity ON entity.name = context.entity WHERE entity.id = ${ENTITY_ID}" | ${DUMP} add --voicemails "${OUTPUT}"
