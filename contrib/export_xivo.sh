@@ -45,3 +45,30 @@ sudo -u postgres psql --csv "${DB_NAME}" -c "SELECT concat('grp-', groupfeatures
 # Voicemails
 echo "exporting voicemails"
 sudo -u postgres psql --csv "${DB_NAME}" -c "select concat('vm-', voicemail.uniqueid) as ref, fullname as name, not cast(skipcheckpass as bool) as ask_password, attach as attach_audio, context, deletevoicemail as delete_messages, voicemail.email, not cast(voicemail.commented as bool) as enabled, language, maxmsg as max_messages, mailbox as number, options, pager, password, tz as timezone from voicemail JOIN context ON context.name = voicemail.context JOIN entity ON entity.name = context.entity WHERE entity.id = ${ENTITY_ID}" | ${DUMP} add --voicemails "${OUTPUT}"
+
+# Incalls
+echo "exporting incoming calls"
+sudo -u postgres psql --csv "${DB_NAME}" -c " \
+SELECT \
+  concat('incall-', incall.id) as ref, \
+  incall.exten, \
+  incall.context, \
+  incall.preprocess_subroutine, \
+  incall.description, \
+  CASE \
+    WHEN dialaction.action = 'user' THEN userfeatures.uuid \
+    WHEN dialaction.action = 'group' THEN concat('grp-', dialaction.actionarg1) \
+    WHEN dialaction.action = 'voicemail' THEN concat('vm-', dialaction.actionarg1) \
+    WHEN dialaction.action = 'extension' THEN concat(dialaction.actionarg1, '@', dialaction.actionarg2) \
+  END as destination, \
+  dialaction.action as destination_type, \
+  dialaction.actionarg2 as destination_options, \
+  callerid.mode as caller_id_mode, \
+  callerid.callerdisplay as caller_id_name \
+FROM incall \
+JOIN context ON incall.context = context.name \
+JOIN entity ON entity.name = context.entity \
+JOIN dialaction ON dialaction.category = 'incall' AND cast(dialaction.categoryval as int) = incall.id \
+JOIN callerid ON cast(callerid.typeval as int) = incall.id AND callerid.type = 'incall' \
+LEFT JOIN userfeatures ON dialaction.action = 'user' AND dialaction.actionarg1 = cast(userfeatures.id as varchar) \
+WHERE entity.id = '1' and incall.commented = '0';" | ${DUMP} add --incalls "${OUTPUT}"

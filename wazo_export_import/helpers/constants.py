@@ -45,16 +45,16 @@ RESOURCE_FIELDS = {
             "voicemail": {
                 "help": "A reference to a voicemail contained in this file",
             },
-            'description': {},
-            'music_on_hold': {},
-            'preprocess_subroutine': {},
-            'caller_id': {},
-            'timezone': {},
+            "description": {},
+            "music_on_hold": {},
+            "preprocess_subroutine": {},
+            "caller_id": {},
+            "timezone": {},
         },
         "unique": [
-            ('ref',),
+            ("ref",),
             # ('email',),  # email can be empty on an export
-            ('firstname', 'lastname'),
+            ("firstname", "lastname"),
         ],
     },
     "ring_groups": {
@@ -86,8 +86,8 @@ RESOURCE_FIELDS = {
             "extension": {},
         },
         "unique": [
-            ('group', 'user'),
-            ('group', 'context', 'extension'),
+            ("group", "user"),
+            ("group", "context", "extension"),
         ],
     },
     "extensions": {
@@ -109,32 +109,49 @@ RESOURCE_FIELDS = {
             "username": {},
             "password": {},
         },
-        'unique': [
-            ('ref',),
+        "unique": [
+            ("ref",),
         ],
     },
-    "incalls": {"fields": {}, "unique": []},
-    "voicemails": {
+    "incalls": {
         "fields": {
-            'ref': {},  # concat('vm-', uniqueid)
-            'name': {},  # fullname
-            'ask_password': {},  # ! skipcheckpass?
-            'attach_audio': {},  # attach
-            'context': {},  # context
-            'delete_messages': {},  # deletevoicemail
-            'email': {},  # email
-            'enabled': {},  # ! commented
-            'language': {},  # language
-            'max_messages': {},  # maxmsg
-            'number': {},  # mailbox
-            'options': {},  # Check the format here...
-            'pager': {},  # pager
-            'password': {},  # password
-            'timezone': {},  # tz Should be checked
+            "ref": {},
+            "exten": {},
+            "context": {},
+            "preprocess_subroutine": {},
+            "caller_id_mode": {},
+            "caller_id_name": {},
+            "destination": {},
+            "destination_type": {},
+            "destination_options": {},
+            "description": {},
         },
         "unique": [
-            ('ref',),
-            ('context', 'number'),
+            ("ref",),
+            ("exten", "context"),
+        ],
+    },
+    "voicemails": {
+        "fields": {
+            "ref": {},  # concat('vm-', uniqueid)
+            "name": {},  # fullname
+            "ask_password": {},  # ! skipcheckpass?
+            "attach_audio": {},  # attach
+            "context": {},  # context
+            "delete_messages": {},  # deletevoicemail
+            "email": {},  # email
+            "enabled": {},  # ! commented
+            "language": {},  # language
+            "max_messages": {},  # maxmsg
+            "number": {},  # mailbox
+            "options": {},  # Check the format here...
+            "pager": {},  # pager
+            "password": {},  # password
+            "timezone": {},  # tz Should be checked
+        },
+        "unique": [
+            ("ref",),
+            ("context", "number"),
         ],
     },
     "contexts": {"fields": {}, "unique": []},
