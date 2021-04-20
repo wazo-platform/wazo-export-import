@@ -60,8 +60,13 @@ SELECT \
   timezone, \
   CASE \
     WHEN voicemailid is not null THEN concat('vm-', voicemailid) \
-  END as voicemail \
+  END as voicemail, \
+  CASE \
+    WHEN schedule_path.schedule_id is not null THEN \
+      concat('sched-', schedule_path.schedule_id) \
+  END as schedule \
 FROM userfeatures \
+LEFT JOIN schedule_path ON schedule_path.pathid = userfeatures.id AND schedule_path.path = 'user'
 WHERE entityid = ${ENTITY_ID}" | ${DUMP} add --users "${OUTPUT}"
 
 # The following 4 queries only handle voicemail ref in the case
@@ -149,11 +154,16 @@ SELECT \
   queue.strategy as ring_strategy, \
   queue.timeout as user_timeout, \
   queue.ringinuse as ring_in_use, \
-  queue.retry as retry_delay \
+  queue.retry as retry_delay, \
+  CASE \
+    WHEN schedule_path.schedule_id is not null THEN \
+      concat('sched-', schedule_path.schedule_id) \
+  END as schedule \
 FROM queue \
 JOIN groupfeatures ON groupfeatures.name = queue.name \
 JOIN context ON groupfeatures.context = context.name \
 JOIN entity ON entity.name = context.entity \
+LEFT JOIN schedule_path ON schedule_path.pathid = groupfeatures.id AND schedule_path.path = 'group'
 WHERE category = 'group' AND entity.id = ${ENTITY_ID}" | ${DUMP} add --ring_groups "${OUTPUT}"
 
 echo "exporting ring group members"
@@ -209,11 +219,16 @@ SELECT \
   dialaction.action as destination_type, \
   dialaction.actionarg2 as destination_options, \
   callerid.mode as caller_id_mode, \
-  callerid.callerdisplay as caller_id_name \
+  callerid.callerdisplay as caller_id_name, \
+  CASE \
+    WHEN schedule_path.schedule_id is not null THEN \
+      concat('sched-', schedule_path.schedule_id) \
+  END as schedule \
 FROM incall \
 JOIN context ON incall.context = context.name \
 JOIN entity ON entity.name = context.entity \
 JOIN dialaction ON dialaction.category = 'incall' AND cast(dialaction.categoryval as int) = incall.id \
 JOIN callerid ON cast(callerid.typeval as int) = incall.id AND callerid.type = 'incall' \
 LEFT JOIN userfeatures ON dialaction.action = 'user' AND dialaction.actionarg1 = cast(userfeatures.id as varchar) \
+LEFT JOIN schedule_path ON schedule_path.pathid = incall.id AND schedule_path.path = 'incall'
 WHERE entity.id = '1' and incall.commented = '0';" | ${DUMP} add --incalls "${OUTPUT}"

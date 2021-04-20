@@ -50,6 +50,7 @@ RESOURCE_FIELDS = {
             "preprocess_subroutine": {},
             "caller_id": {},
             "timezone": {},
+            "schedule": {},
         },
         "unique": [
             ("ref",),
@@ -72,6 +73,7 @@ RESOURCE_FIELDS = {
             "ring_in_use": {},
             "retry_delay": {},
             "music_on_hold": {},
+            "schedule": {},
         },
         "unique": [
             ("ref",),
@@ -125,6 +127,7 @@ RESOURCE_FIELDS = {
             "destination_type": {},
             "destination_options": {},
             "description": {},
+            "schedule": {},
         },
         "unique": [
             ("ref",),
