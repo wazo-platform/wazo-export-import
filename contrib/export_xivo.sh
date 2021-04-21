@@ -232,3 +232,40 @@ JOIN callerid ON cast(callerid.typeval as int) = incall.id AND callerid.type = '
 LEFT JOIN userfeatures ON dialaction.action = 'user' AND dialaction.actionarg1 = cast(userfeatures.id as varchar) \
 LEFT JOIN schedule_path ON schedule_path.pathid = incall.id AND schedule_path.path = 'incall'
 WHERE entity.id = '1' and incall.commented = '0';" | ${DUMP} add --incalls "${OUTPUT}"
+
+
+# Schedules
+echo "exporting schedules"
+sudo -u postgres psql  --csv "${DB_NAME}" -c " \
+SELECT \
+  concat('sched-', schedule.id) as ref,
+  name,
+  timezone,
+  description,
+  not cast(commented as bool) as enabled
+FROM schedule
+WHERE entity_id = '1'" | ${DUMP} add --schedules "${OUTPUT}"
+
+sudo -u postgres psql --csv "${DB_NAME}" -c " \
+SELECT \
+  concat('sched-', schedule_id) as schedule, \
+  mode, \
+  hours, \
+  weekdays, \
+  monthdays, \
+  months, \
+  CASE \
+    WHEN schedule_time.action = 'group' THEN concat('grp-', schedule_time.actionid) \
+    WHEN schedule_time.action = 'voicemail' THEN concat('vm-', schedule_time.actionid) \
+    WHEN schedule_time.action = 'extension' THEN concat(schedule_time.actionid, '@', schedule_time.actionargs) \
+    WHEN schedule_time.action = 'sound' THEN 'sound' \
+  END as destination, \
+  CASE \
+    WHEN schedule_time.action = 'group' THEN schedule_time.actionargs \
+    WHEN schedule_time.action = 'voicemail' THEN schedule_time.actionargs \
+    WHEN schedule_time.action = 'sound' THEN schedule_time.actionid \
+  END as destination_options \
+FROM schedule_time \
+JOIN schedule ON schedule.id = schedule_time.schedule_id \
+WHERE schedule.entity_id = '1'
+" | ${DUMP} add --schedule_times "${OUTPUT}"

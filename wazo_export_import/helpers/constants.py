@@ -158,4 +158,29 @@ RESOURCE_FIELDS = {
         ],
     },
     "contexts": {"fields": {}, "unique": []},
+    "schedules": {
+        "fields": {
+            "ref": {},
+            "name": {},
+            "timezone": {},
+            "description": {},
+            "enabled": {},
+        },
+        "unique": [
+            ("ref",),
+        ],
+    },
+    "schedule_times": {
+        "fields": {
+            "schedule": {"help": "a reference to the schedule"},
+            "mode": {"help": "opened or closed"},
+            "hours": {"help": "14:00-18:00"},
+            "weekdays": {"help": "2-6"},
+            "monthdays": {"help": "1-31"},
+            "months": {"help": "1-12"},
+            "destination": {},
+            "destination_options": {},
+        },
+        "unique": [],
+    },
 }
