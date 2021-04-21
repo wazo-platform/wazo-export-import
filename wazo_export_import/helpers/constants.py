@@ -181,6 +181,8 @@ RESOURCE_FIELDS = {
             "destination": {},
             "destination_options": {},
         },
-        "unique": [],
+        "unique": [
+            ("schedule", "hours", "weekdays", "monthdays", "months"),
+        ],
     },
 }
