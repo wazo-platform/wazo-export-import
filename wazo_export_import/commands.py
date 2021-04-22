@@ -10,6 +10,26 @@ from .helpers.ods import DumpFile
 from .helpers.constants import RESOURCE_FIELDS
 
 
+class Import(command.Command):
+    def get_parser(self, *args, **kwargs):
+        parser = super().get_parser(*args, **kwargs)
+        parser.add_argument("--username", required=True)
+        parser.add_argument("--password", required=True)
+        tenant_selector = parser.add_mutually_exclusive_group(required=True)
+        tenant_selector.add_argument("--tenant", dest="tenant_uuid")
+        tenant_selector.add_argument(
+            "--new-tenant", dest="new_tenant", action="store_const", const=True
+        )
+        parser.add_argument(
+            "filename",
+            help="dump filename to read from",
+        )
+        return parser
+
+    def take_action(self, parsed_args):
+        pass
+
+
 class ListResources(command.Command):
     def take_action(self, parsed_args):
         return " ".join(RESOURCE_FIELDS.keys())
