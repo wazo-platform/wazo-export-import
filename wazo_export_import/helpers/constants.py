@@ -57,6 +57,9 @@ RESOURCE_FIELDS = {
             # ('email',),  # email can be empty on an export
             ("firstname", "lastname"),
         ],
+        "references": [
+            "schedule",
+        ],
     },
     "ring_groups": {
         "fields": {
@@ -79,6 +82,9 @@ RESOURCE_FIELDS = {
             ("ref",),
             ("label",),
         ],
+        "references": [
+            "schedule",
+        ],
     },
     "group_members": {
         "fields": {
@@ -91,6 +97,7 @@ RESOURCE_FIELDS = {
             ("group", "user"),
             ("group", "context", "extension"),
         ],
+        "references": ["group", "user"],
     },
     # Some dialaction extensions are stored here to avoid referencing errors
     "extensions": {
@@ -119,6 +126,7 @@ RESOURCE_FIELDS = {
         "unique": [
             ("ref",),
         ],
+        "references": ["user"],
     },
     "incalls": {
         "fields": {
@@ -138,6 +146,7 @@ RESOURCE_FIELDS = {
             ("ref",),
             ("exten", "context"),
         ],
+        "references": ["destination"],
     },
     "voicemails": {
         "fields": {
@@ -200,5 +209,6 @@ RESOURCE_FIELDS = {
         "unique": [
             ("schedule", "hours", "weekdays", "monthdays", "months"),
         ],
+        "references": ["destination"],
     },
 }

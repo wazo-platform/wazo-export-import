@@ -8,6 +8,7 @@ from cliff import command
 
 from .helpers.ods import DumpFile
 from .helpers.constants import RESOURCE_FIELDS
+from .helpers.import_set import ImportSet
 
 
 class Import(command.Command):
@@ -27,7 +28,10 @@ class Import(command.Command):
         return parser
 
     def take_action(self, parsed_args):
-        pass
+        with DumpFile(parsed_args.filename) as dump_file:
+            import_set = ImportSet(dump_file.get_resources(), RESOURCE_FIELDS)
+
+        import_set.check_references()
 
 
 class ListResources(command.Command):

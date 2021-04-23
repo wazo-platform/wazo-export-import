@@ -36,6 +36,9 @@ class DumpFile:
                 return i
         raise LookupError("No row matching {}".format(pairs))
 
+    def get_resources(self):
+        return deepcopy(self._data)
+
     def update_row(self, tab_name, i, row):
         columns = self._get_columns(tab_name)
         values = self._data[tab_name][i]
@@ -64,7 +67,7 @@ class DumpFile:
     def _pre_fill_columns(self):
         for tab, column_definitions in self._fields.items():
             self._add_tab_if_missing(tab)
-            for column in column_definitions['fields'].keys():
+            for column in column_definitions["fields"].keys():
                 self._add_columns_to_tab_if_missing(tab, column)
 
     def _row_matches(self, columns, row, pairs):
