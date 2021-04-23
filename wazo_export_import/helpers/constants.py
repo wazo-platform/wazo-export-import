@@ -157,7 +157,18 @@ RESOURCE_FIELDS = {
             ("context", "number"),
         ],
     },
-    "contexts": {"fields": {}, "unique": []},
+    "contexts": {
+        "fields": {
+            "ref": {},
+            "name": {},
+            "label": {},
+            "type": {},
+        },
+        "unique": [
+            ("ref",),
+            ("name",),
+        ],
+    },
     "schedules": {
         "fields": {
             "ref": {},

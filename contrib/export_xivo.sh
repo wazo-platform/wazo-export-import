@@ -269,3 +269,16 @@ FROM schedule_time \
 JOIN schedule ON schedule.id = schedule_time.schedule_id \
 WHERE schedule.entity_id = '1'
 " | ${DUMP} add --schedule_times "${OUTPUT}"
+
+# Contexts
+echo "exporting contexts"
+sudo -u postgres psql --csv "${DB_NAME}" -c " \
+SELECT \
+   context.name as ref,
+   context.name,
+   context.displayname as label,
+   context.contexttype as type
+FROM context
+JOIN entity ON context.entity = entity.name
+WHERE entity.id = '1'
+" | ${DUMP} add --contexts "${OUTPUT}"
