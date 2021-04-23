@@ -92,14 +92,19 @@ RESOURCE_FIELDS = {
             ("group", "context", "extension"),
         ],
     },
+    # Some dialaction extensions are stored here to avoid referencing errors
     "extensions": {
         "fields": {
-            "number": {},
+            "ref": {},
+            "exten": {},
             "context": {},
-            "line": {},
-            "group": {},
+            "destination": {},
         },
-        "unique": [],
+        "unique": [
+            ("ref", "destination"),
+            ("exten", "context", "destination"),
+        ],
+        "references": ["destination"],
     },
     "lines": {
         "fields": {

@@ -282,3 +282,43 @@ FROM context
 JOIN entity ON context.entity = entity.name
 WHERE entity.id = '1'
 " | ${DUMP} add --contexts "${OUTPUT}"
+
+echo "exporting extensions"
+sudo -u postgres psql --csv "${DB_NAME}" -c " \
+SELECT
+  concat(extensions.exten, '@', extensions.context) as ref,
+  extensions.context,
+  extensions.exten,
+  CASE
+    WHEN extensions.type = 'user' THEN userfeatures.uuid
+    WHEN extensions.type = 'incall' THEN concat('incall-', extensions.typeval)
+    WHEN extensions.type = 'group' THEN concat('grp-', extensions.typeval)
+  END as destination
+FROM extensions
+LEFT JOIN userfeatures ON userfeatures.id = cast(extensions.typeval as int) AND extensions.type = 'user'
+JOIN context ON extensions.context = context.name
+JOIN entity ON entity.name = context.entity
+WHERE entity.id = '1'
+" | ${DUMP} add --extensions "${OUTPUT}"
+
+sudo -u postgres psql --csv "${DB_NAME}" -c " \
+SELECT
+  concat(dialaction.actionarg1, '@', dialaction.actionarg2) as ref,
+  dialaction.actionarg1 as exten,
+  dialaction.actionarg2 as context
+FROM dialaction
+JOIN context ON dialaction.actionarg2 = context.name
+JOIN entity ON entity.name = context.entity
+WHERE entity.id = '1' AND dialaction.linked = '1' AND dialaction.action = 'extension'
+" | ${DUMP} add --extensions "${OUTPUT}"
+
+sudo -u postgres psql --csv "${DB_NAME}" -c " \
+SELECT
+  concat(schedule_time.actionid, '@', schedule_time.actionargs) as ref,
+  schedule_time.actionid as exten,
+  schedule_time.actionargs as context
+FROM schedule_time
+JOIN context ON schedule_time.actionargs = context.name
+JOIN entity ON entity.name = context.entity
+WHERE entity.id = '1' AND schedule_time.commented = '0' AND schedule_time.action = 'extension'
+" | ${DUMP} add --extensions "${OUTPUT}"
