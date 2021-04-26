@@ -6,6 +6,7 @@ import sys
 
 from cliff import command
 
+from .helpers.importer import WazoAPI
 from .helpers.ods import DumpFile
 from .helpers.constants import RESOURCE_FIELDS
 from .helpers.import_set import ImportSet
@@ -18,9 +19,7 @@ class Import(command.Command):
         parser.add_argument("--password", required=True)
         tenant_selector = parser.add_mutually_exclusive_group(required=True)
         tenant_selector.add_argument("--tenant", dest="tenant_uuid")
-        tenant_selector.add_argument(
-            "--new-tenant", dest="new_tenant", action="store_const", const=True
-        )
+        tenant_selector.add_argument("--tenant-slug", dest="tenant_slug")
         parser.add_argument(
             "filename",
             help="dump filename to read from",
@@ -32,6 +31,14 @@ class Import(command.Command):
             import_set = ImportSet(dump_file.get_resources(), RESOURCE_FIELDS)
 
         import_set.check_references()
+
+        tenant_args = {}
+        if parsed_args.tenant_uuid:
+            tenant_args["tenant_uuid"] = parsed_args.tenant_uuid
+        elif parsed_args.tenant_slug:
+            tenant_args["tenant_slug"] = parsed_args.tenant_slug
+        proxy = WazoAPI(parsed_args.username, parsed_args.password, **tenant_args)
+        proxy.import_all(import_set)
 
 
 class ListResources(command.Command):

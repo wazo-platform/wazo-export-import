@@ -40,6 +40,14 @@ class ImportSet:
         if unknown_references:
             raise UnknownReferenceException(list(unknown_references))
 
+    def list(self, resource_type):
+        headers = self._data[resource_type][0]
+        for row in self._data[resource_type][1:]:
+            yield dict(zip(headers, row))
+
+    def update(self, resource_type, resource):
+        pass
+
     def _find_references(self):
         references = {}
 
