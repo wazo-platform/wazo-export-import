@@ -67,7 +67,7 @@ SELECT \
   END as schedule \
 FROM userfeatures \
 LEFT JOIN schedule_path ON schedule_path.pathid = userfeatures.id AND schedule_path.path = 'user'
-WHERE entityid = ${ENTITY_ID}" | ${DUMP} add --users "${OUTPUT}"
+WHERE entityid = ${ENTITY_ID} AND loginclient != 'xuc'" | ${DUMP} add --users "${OUTPUT}"
 
 # The following 4 queries only handle voicemail ref in the case
 echo "exporting users fallbacks"
