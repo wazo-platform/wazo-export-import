@@ -28,29 +28,29 @@ sudo -u postgres psql --csv "${DB_NAME}" -c " \
 SELECT \
   uuid as ref, \
   rightcallcode as call_permission_password, \
-  enablexfer as call_transfer_enabled, \
-  true as dtmf_hangup_enabled, \
+  cast(enablexfer as bool)::text as call_transfer_enabled, \
+  true::text as dtmf_hangup_enabled, \
   email, \
   destunc as unconditional_forward_destination, \
-  enableunc as unconditional_forward_enabled, \
+  cast(enableunc as bool)::text as unconditional_forward_enabled, \
   destbusy as busy_forward_destination, \
-  enablebusy as busy_forward_enabled, \
+  cast(enablebusy as bool)::text as busy_forward_enabled, \
   destrna as no_answer_forward_destination, \
-  enablerna as no_answer_forward_enabled, \
+  cast(enablerna as bool)::text as no_answer_forward_enabled, \
   firstname, \
   lastname, \
   language, \
   mobilephonenumber as mobile_phone_number, \
   outcallerid as outgoing_caller_id, \
   passwdclient as password, \
-  callrecord as recording_incoming_external_enabled, \
-  callrecord as recording_incoming_internal_enabled, \
-  callrecord as recording_outgoing_external_enabled, \
-  callrecord as recording_outgoing_internal_enabled, \
+  cast(callrecord as bool)::text as recording_incoming_external_enabled, \
+  cast(callrecord as bool)::text as recording_incoming_internal_enabled, \
+  cast(callrecord as bool)::text as recording_outgoing_external_enabled, \
+  cast(callrecord as bool)::text as recording_outgoing_internal_enabled, \
   ringseconds as  ring_seconds, \
   simultcalls as simultaneous_calls, \
   1 as subscription_type, \
-  enablehint as supervision_enabled, \
+  cast(enablehint as bool)::text as supervision_enabled, \
   userfield as userfield, \
   loginclient as username, \
   description, \
