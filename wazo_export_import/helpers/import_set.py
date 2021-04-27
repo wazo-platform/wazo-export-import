@@ -7,6 +7,16 @@ from .exceptions import UnknownReferenceException
 MAGIC_REFERENCES = ("sound",)
 
 
+def convert_value(value):
+    # Convert values from postgresql format to python values
+    if value == "true":
+        return True
+    elif value == "false":
+        return False
+    else:
+        return value
+
+
 class ImportSet:
     def __init__(self, raw_data, data_definition):
         self._data = raw_data
@@ -43,7 +53,7 @@ class ImportSet:
     def list(self, resource_type):
         headers = self._data[resource_type][0]
         for row in self._data[resource_type][1:]:
-            yield dict(zip(headers, row))
+            yield {k: convert_value(v) for k, v in dict(zip(headers, row)).items()}
 
     def update(self, resource_type, resource):
         pass
