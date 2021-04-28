@@ -1,12 +1,16 @@
 # Copyright 2021 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import logging
+
 from requests import HTTPError
 
 from wazo_auth_client import Client as AuthClient
 from wazo_confd_client import Client as ConfdClient
 
 from .constants import RESOURCE_FIELDS
+
+logger = logging.getLogger(__name__)
 
 
 def is_error(exception, expected_status_code):
@@ -62,12 +66,11 @@ class WazoAPI:
             resource_list = list(import_set.list(resource_type))
             self.mark_existing(resource_type, resource_list, existing_resources)
 
-            print("importing", len(resource_list), resource_type)
-            for resource in resource_list:
+            logger.debug("importing %s %s", len(resource_list), resource_type)
+            for i, resource in enumerate(resource_list):
+                logger.debug("creating %s %s", resource_type, i)
                 result = create_or_update_fn(resource)
                 import_set.update(resource, result)
-                print(".", end="", flush=True)
-            print()
 
     def mark_existing(self, resource_type, resource_list, existing_resources):
         unique_columns = None
@@ -149,7 +152,9 @@ class WazoAPI:
             return self._update_users(body, existing_resource)
 
     def _update_users(self, body, existing_user):
-        print("user {firstname} {lastname} already exist. skipping".format(**body))
+        logger.info(
+            "user %s %s already exist. skipping", body["firstname"], body["lastname"]
+        )
 
     def _create_users(self, body):
         confd_body = {k: v for k, v in body.items() if v}
