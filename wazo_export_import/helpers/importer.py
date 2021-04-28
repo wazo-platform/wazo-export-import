@@ -129,6 +129,9 @@ class WazoAPI:
         self._auth_client.set_tenant(self._tenant_uuid)
         self._confd_client.set_tenant(self._tenant_uuid)
 
+    def list_ring_groups(self):
+        return self._confd_client.groups.list()["items"]
+
     def list_users(self):
         confd_users = self._confd_client.users.list()["items"]
         auth_users = self._auth_client.users.list()["items"]
@@ -144,6 +147,13 @@ class WazoAPI:
 
         return merged_users.values()
 
+    def create_or_update_ring_groups(self, body):
+        existing_resource = body.get("existing_resource", False)
+        if not existing_resource:
+            return self._create_ring_groups(body)
+        else:
+            logger.info("group %s already exist. skipping", body["label"])
+
     def create_or_update_users(self, body):
         existing_resource = body.get("existing_resource", False)
         if not existing_resource:
@@ -155,6 +165,15 @@ class WazoAPI:
         logger.info(
             "user %s %s already exist. skipping", body["firstname"], body["lastname"]
         )
+
+    def _create_ring_groups(self, body):
+        confd_body = {k: v for k, v in body.items() if v}
+        try:
+            return self._confd_client.groups.create(confd_body)
+        except HTTPError as e:
+            if is_error(e, 400):
+                logger.info("invalid group input: %s", body)
+            raise
 
     def _create_users(self, body):
         confd_body = {k: v for k, v in body.items() if v}

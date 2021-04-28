@@ -68,7 +68,7 @@ RESOURCE_FIELDS = {
             "ring_strategy": {},
             "fallback_no_answer": {},
             "caller_id_mode": {},
-            "called_id_name": {},
+            "caller_id_name": {},
             "enabled": {},
             "preprocess_subroutine": {},
             "timeout": {},

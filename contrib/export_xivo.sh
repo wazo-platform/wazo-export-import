@@ -147,22 +147,31 @@ SELECT \
   groupfeatures.timeout as timeout, \
   groupfeatures.preprocess_subroutine as preprocess_subroutine, \
   CASE \
-    WHEN groupfeatures.deleted = 0 THEN true \
-    WHEN groupfeatures.deleted = 1 THEN false \
+    WHEN groupfeatures.deleted = 0 THEN true::text \
+    WHEN groupfeatures.deleted = 1 THEN false::text \
   END as enabled, \
   queue.musicclass as music_on_hold, \
-  queue.strategy as ring_strategy, \
+  CASE
+    WHEN queue.strategy = 'ringall' THEN 'all'
+    WHEN queue.strategy = 'rrmemory' THEN 'memorized_round_robin'
+    WHEN queue.strategy = 'leastrecent' THEN 'least_recent'
+    WHEN queue.strategy = 'fewestcalls' THEN 'fewest_calls'
+    WHEN queue.strategy = 'wrandom' THEN 'weight_random'
+  END as ring_strategy, \
   queue.timeout as user_timeout, \
-  queue.ringinuse as ring_in_use, \
+  cast(queue.ringinuse as boolean)::text as ring_in_use, \
   queue.retry as retry_delay, \
   CASE \
     WHEN schedule_path.schedule_id is not null THEN \
       concat('sched-', schedule_path.schedule_id) \
-  END as schedule \
+  END as schedule,
+  callerid.mode as caller_id_mode,
+  callerdisplay as caller_id_name
 FROM queue \
 JOIN groupfeatures ON groupfeatures.name = queue.name \
 JOIN context ON groupfeatures.context = context.name \
 JOIN entity ON entity.name = context.entity \
+LEFT JOIN callerid ON cast(callerid.typeval as int) = groupfeatures.id AND callerid.type = 'group'
 LEFT JOIN schedule_path ON schedule_path.pathid = groupfeatures.id AND schedule_path.path = 'group'
 WHERE category = 'group' AND entity.id = ${ENTITY_ID}" | ${DUMP} add --ring_groups "${OUTPUT}"
 
@@ -228,7 +237,7 @@ FROM incall \
 JOIN context ON incall.context = context.name \
 JOIN entity ON entity.name = context.entity \
 JOIN dialaction ON dialaction.category = 'incall' AND cast(dialaction.categoryval as int) = incall.id \
-JOIN callerid ON cast(callerid.typeval as int) = incall.id AND callerid.type = 'incall' \
+LEFT JOIN callerid ON cast(callerid.typeval as int) = incall.id AND callerid.type = 'incall' \
 LEFT JOIN userfeatures ON dialaction.action = 'user' AND dialaction.actionarg1 = cast(userfeatures.id as varchar) \
 LEFT JOIN schedule_path ON schedule_path.pathid = incall.id AND schedule_path.path = 'incall'
 WHERE entity.id = '1' and incall.commented = '0';" | ${DUMP} add --incalls "${OUTPUT}"
