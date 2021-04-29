@@ -92,6 +92,7 @@ RESOURCE_FIELDS = {
             "user": {},
             "context": {},
             "extension": {},
+            "priority": {},
         },
         "unique": [
             ("group", "user"),

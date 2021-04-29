@@ -180,7 +180,8 @@ echo "exporting ring group members"
 sudo -u postgres psql --csv "${DB_NAME}" -c " \
 SELECT \
   concat('grp-', groupfeatures.id) AS group, \
-  userfeatures.uuid AS user \
+  userfeatures.uuid AS user,
+  position as priority
 FROM queuemember \
 JOIN groupfeatures ON queuemember.queue_name = groupfeatures.name AND queuemember.category = 'group' \
 JOIN userfeatures ON queuemember.usertype = 'user' AND queuemember.userid = userfeatures.id

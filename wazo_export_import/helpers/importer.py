@@ -51,6 +51,7 @@ class WazoAPI:
         )
 
         self._token_payload = {}
+        self._group_members = {}
 
     def create_or_update_resources(self, import_set):
         for resource_type in self._data_definition.keys():
@@ -69,8 +70,8 @@ class WazoAPI:
             logger.debug("importing %s %s", len(resource_list), resource_type)
             for i, resource in enumerate(resource_list):
                 logger.debug("creating %s %s", resource_type, i)
-                result = create_or_update_fn(resource)
-                import_set.update(resource, result)
+                create_or_update_fn(resource, import_set)
+            self._flush(resource_type)
 
     def mark_existing(self, resource_type, resource_list, existing_resources):
         unique_columns = None
@@ -96,7 +97,7 @@ class WazoAPI:
             if not matching_resource:
                 continue
 
-            resource["existing_resource"] = resource
+            resource["existing_resource"] = matching_resource
 
     def setup_relations(self, import_set):
         pass
@@ -129,6 +130,9 @@ class WazoAPI:
         self._auth_client.set_tenant(self._tenant_uuid)
         self._confd_client.set_tenant(self._tenant_uuid)
 
+    def list_group_members(self):
+        return []
+
     def list_ring_groups(self):
         return self._confd_client.groups.list()["items"]
 
@@ -147,14 +151,39 @@ class WazoAPI:
 
         return merged_users.values()
 
-    def create_or_update_ring_groups(self, body):
+    def create_or_update_group_members(self, body, import_set):
+        group_ref = body["group"]
+        user_ref = body["user"]
+        priority = body["priority"]
+
+        group = import_set.get_resource(group_ref)
+        user = import_set.get_resource(user_ref)
+
+        if not group:
+            logger.info("unable to find group %s to add user %s", group_ref, user_ref)
+            return
+        if not user:
+            logger.info(
+                "unable to find user %s to add to group %s", user_ref, group_ref
+            )
+            return
+
+        group_uuid = group["existing_resource"]["uuid"]
+        if group_uuid not in self._group_members:
+            self._group_members[group_uuid] = []
+
+        self._group_members[group_uuid].append(
+            {"priority": priority, "uuid": user["existing_resource"]["uuid"]}
+        )
+
+    def create_or_update_ring_groups(self, body, import_set):
         existing_resource = body.get("existing_resource", False)
         if not existing_resource:
             return self._create_ring_groups(body)
         else:
             logger.info("group %s already exist. skipping", body["label"])
 
-    def create_or_update_users(self, body):
+    def create_or_update_users(self, body, import_set):
         existing_resource = body.get("existing_resource", False)
         if not existing_resource:
             return self._create_users(body)
@@ -169,7 +198,9 @@ class WazoAPI:
     def _create_ring_groups(self, body):
         confd_body = {k: v for k, v in body.items() if v}
         try:
-            return self._confd_client.groups.create(confd_body)
+            resource = self._confd_client.groups.create(confd_body)
+            body["existing_resource"] = resource
+            return resource
         except HTTPError as e:
             if is_error(e, 400):
                 logger.info("invalid group input: %s", body)
@@ -184,6 +215,7 @@ class WazoAPI:
                 print("invalid user input", body)
             raise
         body["uuid"] = confd_user["uuid"]
+        body["existing_resource"] = confd_user
 
         auth_body = {k: v for k, v in body.items() if v}
         # TODO(pc-m): make this configurable? If the username is empty, use the user's UUID
@@ -200,3 +232,8 @@ class WazoAPI:
             raise
 
         return confd_user
+
+    def _flush(self, resource_type):
+        if resource_type == "group_members":
+            for uuid, members in self._group_members.items():
+                self._confd_client.groups.relations(uuid).update_user_members(members)

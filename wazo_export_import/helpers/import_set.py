@@ -1,7 +1,11 @@
 # Copyright 2021 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import logging
+
 from .exceptions import UnknownReferenceException
+
+logger = logging.getLogger(__name__)
 
 # Some references are not found in the dump file
 MAGIC_REFERENCES = ("sound",)
@@ -21,59 +25,66 @@ class ImportSet:
     def __init__(self, raw_data, data_definition):
         self._data = raw_data
         self._data_definition = data_definition
+        self._resources = {}
+        for resource_type in data_definition.keys():
+            self._resources[resource_type] = []
+        self._referenced_resources = {}
 
-    def check_references(self):
-        unknown_references = set()
-        referenced_resources = self._find_references()
+        self._build_resources()
+        self._build_references()
 
-        for tab, content in self._data.items():
+    def _build_resources(self):
+        logger.info("building all resources")
+        for type_, content in self._data.items():
             if not content:
                 continue
 
-            references = self._data_definition.get(tab, {}).get("references", [])
+            headers = content[0]
+            for row in content[1:]:
+                resource = {k: convert_value(v) for k, v in zip(headers, row)}
+                self._resources[type_].append(resource)
+        logger.debug("resource building done")
+
+    def _build_references(self):
+        logger.info("building references")
+        for type_, resources in self._resources.items():
+            if not resources:
+                continue
+            if "ref" not in resources[1]:
+                continue
+            for resource in resources:
+                reference = resource["ref"]
+                if not reference:
+                    continue
+                self._referenced_resources[reference] = resource
+        logger.debug("reference building done")
+
+    def check_references(self):
+        logger.info("checking references")
+        unknown_references = set()
+
+        for type_, resources in self._resources.items():
+            if not resources:
+                continue
+
+            references = self._data_definition.get(type_, {}).get("references", [])
             for reference in references:
-                headers = content[0]
-                position = headers.index(reference)
-                for row in content[1:]:
-                    if position >= len(row):
-                        # empty cel at the end of the row
-                        continue
-                    lookedup_reference = row[position]
+                for resource in resources:
+                    lookedup_reference = resource.get(reference)
                     if not lookedup_reference:
-                        # Empty cel
                         continue
                     if lookedup_reference in MAGIC_REFERENCES:
                         continue
-                    if lookedup_reference not in referenced_resources:
+                    if lookedup_reference not in self._referenced_resources:
                         unknown_references.add(lookedup_reference)
+
+        logger.debug("reference checking done")
 
         if unknown_references:
             raise UnknownReferenceException(list(unknown_references))
 
     def list(self, resource_type):
-        headers = self._data[resource_type][0]
-        for row in self._data[resource_type][1:]:
-            yield {k: convert_value(v) for k, v in dict(zip(headers, row)).items()}
+        return self._resources.get(resource_type, [])
 
-    def update(self, resource_type, resource):
-        pass
-
-    def _find_references(self):
-        references = {}
-
-        for tab, content in self._data.items():
-            if not content:
-                continue
-
-            headers = content[0]
-            try:
-                reference_column = headers.index("ref")
-            except ValueError:
-                continue
-
-            for row in content[1:]:
-                reference = row[reference_column]
-                resource = zip(headers, row)
-                references[reference] = resource
-
-        return references
+    def get_resource(self, reference):
+        return self._referenced_resources.get(reference)
