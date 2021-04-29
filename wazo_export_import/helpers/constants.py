@@ -86,6 +86,20 @@ RESOURCE_FIELDS = {
             "schedule",
         ],
     },
+    "lines": {
+        "fields": {
+            "ref": {},
+            "user": {},
+            "type": {},
+            "context": {},
+            "username": {},
+            "password": {},
+        },
+        "unique": [
+            ("ref",),
+        ],
+        "references": ["user"],
+    },
     "group_members": {
         "fields": {
             "group": {},
@@ -113,21 +127,6 @@ RESOURCE_FIELDS = {
             ("exten", "context", "destination"),
         ],
         "references": ["destination"],
-    },
-    "lines": {
-        "fields": {
-            "ref": {},
-            "user": {},
-            "type": {},
-            "context": {},
-            "device": {},
-            "username": {},
-            "password": {},
-        },
-        "unique": [
-            ("ref",),
-        ],
-        "references": ["user"],
     },
     "incalls": {
         "fields": {

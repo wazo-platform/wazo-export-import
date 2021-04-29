@@ -138,6 +138,23 @@ WHERE category = 'user' \
   AND event = 'chanunavail' \
   AND userfeatures.entityid = ${ENTITY_ID}" | ${DUMP} add --users "${OUTPUT}"
 
+echo "exporting lines"
+sudo -u postgres psql --csv "${DB_NAME}" -c " \
+SELECT
+  concat('line-', linefeatures.id) as ref,
+  linefeatures.protocol as type,
+  linefeatures.context,
+  userfeatures.uuid as user,
+  usersip.name as username,
+  usersip.secret as password
+FROM linefeatures
+JOIN user_line ON linefeatures.id = user_line.line_id
+JOIN userfeatures ON userfeatures.id = user_line.user_id
+JOIN usersip ON usersip.id = linefeatures.protocolid AND usersip.category = 'user'
+WHERE userfeatures.entityid = ${ENTITY_ID}
+  AND linefeatures.protocol = 'sip'
+" | ${DUMP} add --lines "${OUTPUT}"
+
 # Ring groups
 echo "exporting ring groups"
 sudo -u postgres psql --csv "${DB_NAME}" -c " \
