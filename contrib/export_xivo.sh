@@ -145,7 +145,7 @@ SELECT
   linefeatures.protocol as type,
   linefeatures.context,
   userfeatures.uuid as user,
-  usersip.name as username,
+  usersip.name,
   usersip.secret as password
 FROM linefeatures
 JOIN user_line ON linefeatures.id = user_line.line_id
@@ -307,7 +307,7 @@ SELECT \
    context.contexttype as type
 FROM context
 JOIN entity ON context.entity = entity.name
-WHERE entity.id = '1'
+WHERE entity.id = '1' AND context.name != '__switchboard_directory'
 " | ${DUMP} add --contexts "${OUTPUT}"
 
 echo "exporting extensions"
@@ -317,12 +317,13 @@ SELECT
   extensions.context,
   extensions.exten,
   CASE
-    WHEN extensions.type = 'user' THEN userfeatures.uuid
+    WHEN extensions.type = 'user' THEN concat('line-', user_line.line_id)
     WHEN extensions.type = 'incall' THEN concat('incall-', extensions.typeval)
     WHEN extensions.type = 'group' THEN concat('grp-', extensions.typeval)
   END as destination
 FROM extensions
 LEFT JOIN userfeatures ON userfeatures.id = cast(extensions.typeval as int) AND extensions.type = 'user'
+LEFT JOIN user_line ON user_line.user_id = userfeatures.id
 JOIN context ON extensions.context = context.name
 JOIN entity ON entity.name = context.entity
 WHERE entity.id = '1'

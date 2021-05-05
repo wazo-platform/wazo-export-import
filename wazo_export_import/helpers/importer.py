@@ -33,6 +33,7 @@ class WazoAPI:
         self._tenant_uuid = tenant_uuid
         self._tenant_slug = tenant_slug
         self._data_definition = data_definition or RESOURCE_FIELDS
+        self._global_sip_template = None
         # Only works on localhost at the moment
 
         self._auth_client = AuthClient(
@@ -52,6 +53,15 @@ class WazoAPI:
 
         self._token_payload = {}
         self._group_members = {}
+
+    @property
+    def global_sip_template(self):
+        if not self._global_sip_template:
+            tenant = self._confd_client.tenants.list()["items"][0]
+            self._global_sip_template = self._confd_client.endpoints_sip_templates.get(
+                tenant["global_sip_template_uuid"],
+            )
+        return self._global_sip_template
 
     def create_or_update_resources(self, import_set):
         for resource_type in self._data_definition.keys():
@@ -130,8 +140,17 @@ class WazoAPI:
         self._auth_client.set_tenant(self._tenant_uuid)
         self._confd_client.set_tenant(self._tenant_uuid)
 
+    def list_contexts(self):
+        return self._confd_client.contexts.list()["items"]
+
+    def list_extensions(self):
+        return self._confd_client.extensions.list()["items"]
+
     def list_group_members(self):
         return []
+
+    def list_lines(self):
+        return self._confd_client.lines.list()["items"]
 
     def list_ring_groups(self):
         return self._confd_client.groups.list()["items"]
@@ -150,6 +169,93 @@ class WazoAPI:
                 merged_users[user["uuid"]].update(user)
 
         return merged_users.values()
+
+    def create_or_update_contexts(self, body, import_set):
+        if body.get("existing_resource"):
+            return
+
+        try:
+            context = self._confd_client.contexts.create(body)
+        except HTTPError as e:
+            if is_error(e, 400):
+                print("invalid context input", body)
+            raise
+        return context
+
+    def create_or_update_extensions(self, body, import_set):
+        if body.get("existing_resource"):
+            return
+
+        destination_ref = body.get("destination")
+        if not destination_ref:
+            return
+
+        destination = import_set.get_resource(destination_ref)
+        if destination["type_"] not in ("lines", "groups", "incalls"):
+            return
+
+        confd_body = dict(body)
+        context_name = body.get("context")
+        if context_name:
+            context = import_set.get_resource(context_name)
+            confd_body["context"] = context["existing_resource"]["name"]
+
+        try:
+            extension = self._confd_client.extensions.create(confd_body)
+            body["existing_resource"] = extension
+        except HTTPError as e:
+            if is_error(e, 400) and "already exists" in e.response.text:
+                extension = self._confd_client.extensions.list(
+                    exten=confd_body["exten"],
+                    context=confd_body["context"],
+                )["items"][0]
+                body["existing_resource"] = extension
+            else:
+                raise
+
+        if destination["type_"] == "lines":
+            user_ref = destination["user"]
+            user = import_set.get_resource(user_ref)["existing_resource"]
+            line = destination["existing_resource"]
+            try:
+                self._confd_client.lines(line["id"]).add_extension(extension)
+            except HTTPError:
+                raise
+            self._confd_client.users(user["uuid"]).add_line(line)
+
+    def create_or_update_lines(self, body, import_set):
+        if body.get("existing_resource"):
+            return
+
+        endpoint_body = {
+            "label": body["name"],
+            "name": body["name"],
+            "endpoint_endpoint_options": [
+                ["username", body["name"]],
+                ["password", body["password"]],
+            ],
+            "templates": [self.global_sip_template],
+        }
+        try:
+            endpoint_sip = self._confd_client.endpoints_sip.create(endpoint_body)
+        except HTTPError as e:
+            if is_error(e, 400) and "already exists" in e.response.text:
+                matching_endpoints = self._confd_client.endpoints_sip.list(
+                    name=body["name"]
+                )["items"]
+                if not matching_endpoints:
+                    raise
+
+                endpoint_sip = matching_endpoints[0]
+            else:
+                raise
+
+        context = import_set.get_resource(body["context"])["existing_resource"]
+        line = self._confd_client.lines.create(
+            {"name": body["name"], "context": context["name"]}
+        )
+        self._confd_client.lines(line["id"]).add_endpoint_sip(endpoint_sip)
+        body["existing_resource"] = line
 
     def create_or_update_group_members(self, body, import_set):
         group_ref = body["group"]

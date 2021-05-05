@@ -42,6 +42,7 @@ class ImportSet:
             headers = content[0]
             for row in content[1:]:
                 resource = {k: convert_value(v) for k, v in zip(headers, row)}
+                resource["type_"] = type_
                 self._resources[type_].append(resource)
         logger.debug("resource building done")
 

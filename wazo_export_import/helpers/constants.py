@@ -2,6 +2,18 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 RESOURCE_FIELDS = {
+    "contexts": {
+        "fields": {
+            "ref": {},
+            "name": {},
+            "label": {},
+            "type": {},
+        },
+        "unique": [
+            ("ref",),
+            ("name",),
+        ],
+    },
     "users": {
         "fields": {
             "call_permission_password": {},
@@ -61,6 +73,21 @@ RESOURCE_FIELDS = {
             "schedule",
         ],
     },
+    "lines": {
+        "fields": {
+            "ref": {},
+            "user": {},
+            "type": {},
+            "context": {},
+            "name": {},
+            "password": {},
+        },
+        "unique": [
+            ("ref",),
+            ("name"),
+        ],
+        "references": ["user", "context"],
+    },
     "ring_groups": {
         "fields": {
             "ref": {},
@@ -86,19 +113,19 @@ RESOURCE_FIELDS = {
             "schedule",
         ],
     },
-    "lines": {
+    # Some dialaction extensions are stored here to avoid referencing errors
+    "extensions": {
         "fields": {
             "ref": {},
-            "user": {},
-            "type": {},
+            "exten": {},
             "context": {},
-            "username": {},
-            "password": {},
+            "destination": {},
         },
         "unique": [
             ("ref",),
+            ("exten", "context"),
         ],
-        "references": ["user"],
+        "references": ["destination", "context"],
     },
     "group_members": {
         "fields": {
@@ -113,20 +140,6 @@ RESOURCE_FIELDS = {
             ("group", "context", "extension"),
         ],
         "references": ["group", "user"],
-    },
-    # Some dialaction extensions are stored here to avoid referencing errors
-    "extensions": {
-        "fields": {
-            "ref": {},
-            "exten": {},
-            "context": {},
-            "destination": {},
-        },
-        "unique": [
-            ("ref", "destination"),
-            ("exten", "context", "destination"),
-        ],
-        "references": ["destination"],
     },
     "incalls": {
         "fields": {
@@ -169,18 +182,6 @@ RESOURCE_FIELDS = {
         "unique": [
             ("ref",),
             ("context", "number"),
-        ],
-    },
-    "contexts": {
-        "fields": {
-            "ref": {},
-            "name": {},
-            "label": {},
-            "type": {},
-        },
-        "unique": [
-            ("ref",),
-            ("name",),
         ],
     },
     "schedules": {
