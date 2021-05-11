@@ -84,7 +84,7 @@ RESOURCE_FIELDS = {
         },
         "unique": [
             ("ref",),
-            ("name"),
+            ("name",),
         ],
         "references": ["user", "context"],
     },
@@ -141,26 +141,6 @@ RESOURCE_FIELDS = {
         ],
         "references": ["group", "user"],
     },
-    "incalls": {
-        "fields": {
-            "ref": {},
-            "exten": {},
-            "context": {},
-            "preprocess_subroutine": {},
-            "caller_id_mode": {},
-            "caller_id_name": {},
-            "destination": {},
-            "destination_type": {},
-            "destination_options": {},
-            "description": {},
-            "schedule": {},
-        },
-        "unique": [
-            ("ref",),
-            ("exten", "context"),
-        ],
-        "references": ["destination"],
-    },
     "voicemails": {
         "fields": {
             "ref": {},  # concat('vm-', uniqueid)
@@ -183,6 +163,26 @@ RESOURCE_FIELDS = {
             ("ref",),
             ("context", "number"),
         ],
+    },
+    "incalls": {
+        "fields": {
+            "ref": {},
+            "exten": {},
+            "context": {},
+            "preprocess_subroutine": {},
+            "caller_id_mode": {},
+            "caller_id_name": {},
+            "destination": {},
+            "destination_type": {},
+            "destination_options": {},
+            "description": {},
+            "schedule": {},
+        },
+        "unique": [
+            ("ref",),
+            ("exten", "context"),
+        ],
+        "references": ["destination"],
     },
     "schedules": {
         "fields": {

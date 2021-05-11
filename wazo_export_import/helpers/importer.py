@@ -77,9 +77,7 @@ class WazoAPI:
             resource_list = list(import_set.list(resource_type))
             self.mark_existing(resource_type, resource_list, existing_resources)
 
-            logger.debug("importing %s %s", len(resource_list), resource_type)
             for i, resource in enumerate(resource_list):
-                logger.debug("creating %s %s", resource_type, i)
                 create_or_update_fn(resource, import_set)
             self._flush(resource_type)
 
@@ -148,6 +146,9 @@ class WazoAPI:
 
     def list_group_members(self):
         return []
+
+    def list_incalls(self):
+        return self._confd_client.incalls.list()["items"]
 
     def list_lines(self):
         return self._confd_client.lines.list()["items"]
@@ -223,6 +224,59 @@ class WazoAPI:
                 raise
             self._confd_client.users(user["uuid"]).add_line(line)
 
+    def create_or_update_incalls(self, body, import_set):
+        if body.get("existing_resource"):
+            return
+
+        # Should this pruning happen in the import set?
+        confd_body = {k: v for k, v in body.items() if v}
+        destination_ref = confd_body.get("destination")
+        if not destination_ref:
+            return
+
+        context_ref = confd_body["context"]
+        context = import_set.get_resource(context_ref)
+        confd_body["context"] = context["name"]
+
+        destination = import_set.get_resource(destination_ref)
+        if destination["type_"] == "users":
+            confd_body["destination"] = {
+                "type": "user",
+                "user_id": destination["existing_resource"]["id"],
+            }
+        elif destination["type_"] == "ring_groups":
+            confd_body["destination"] = {
+                "type": "group",
+                "group_id": destination["existing_resource"]["id"],
+            }
+        elif destination["type_"] == "extensions":
+            context_ref = destination["context"]
+            context = import_set.get_resource(context_ref)
+            confd_body["destination"] = {
+                "type": "extension",
+                "exten": destination["exten"],
+                "context": context["name"],
+            }
+        elif destination["type_"] == "voicemails":
+            logger.info("Not implemented")
+            return
+            confd_body["destination"] = {
+                "type": "voicemail",
+                "voicemail_id": destination["existing_resource"]["id"],
+                # TODO(pc-m): voicemail options
+            }
+            if confd_body.get("destination_options"):
+                logger.info("destionation_options: %s", confd_body)
+                raise
+
+        try:
+            incall = self._confd_client.incalls.create(confd_body)
+        except HTTPError:
+            logger.info("Failed to create incall %s", confd_body)
+            logger.info("destination: %s", destination)
+            raise
+        body["existing_resource"] = incall
+
     def create_or_update_lines(self, body, import_set):
         if body.get("existing_resource"):
             return
@@ -254,8 +308,8 @@ class WazoAPI:
         line = self._confd_client.lines.create(
             {"name": body["name"], "context": context["name"]}
         )
-        self._confd_client.lines(line["id"]).add_endpoint_sip(endpoint_sip)
         body["existing_resource"] = line
+        self._confd_client.lines(line["id"]).add_endpoint_sip(endpoint_sip)
 
     def create_or_update_group_members(self, body, import_set):
         group_ref = body["group"]

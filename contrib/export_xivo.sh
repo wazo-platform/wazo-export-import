@@ -243,7 +243,6 @@ SELECT \
     WHEN dialaction.action = 'voicemail' THEN concat('vm-', dialaction.actionarg1) \
     WHEN dialaction.action = 'extension' THEN concat(dialaction.actionarg1, '@', dialaction.actionarg2) \
   END as destination, \
-  dialaction.action as destination_type, \
   dialaction.actionarg2 as destination_options, \
   callerid.mode as caller_id_mode, \
   callerid.callerdisplay as caller_id_name, \
