@@ -71,6 +71,7 @@ RESOURCE_FIELDS = {
         ],
         "references": [
             "schedule",
+            "voicemail",
         ],
     },
     "lines": {
@@ -161,8 +162,12 @@ RESOURCE_FIELDS = {
         },
         "unique": [
             ("ref",),
+            (
+                "fullname"
+            ),  # NOTE(pc-m): context is not the first unique because context can be changed...
             ("context", "number"),
         ],
+        "references": ["context"],
     },
     "incalls": {
         "fields": {
@@ -182,7 +187,7 @@ RESOURCE_FIELDS = {
             ("ref",),
             ("exten", "context"),
         ],
-        "references": ["destination"],
+        "references": ["destination", "context"],
     },
     "schedules": {
         "fields": {

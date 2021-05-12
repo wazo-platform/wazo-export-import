@@ -207,26 +207,28 @@ WHERE userfeatures.entityid = ${ENTITY_ID}" | ${DUMP} add --group_members "${OUT
 
 # Voicemails
 echo "exporting voicemails"
-sudo -u postgres psql --csv "${DB_NAME}" -c " \
-SELECT \
-  concat('vm-', voicemail.uniqueid) as ref, \
-  fullname as name, \
-  not cast(skipcheckpass as bool) as ask_password, \
-  attach as attach_audio, \
-  context, \
-  deletevoicemail as delete_messages, \
-  voicemail.email, \
-  not cast(voicemail.commented as bool) as enabled, \
-  language, \
-  maxmsg as max_messages, \
-  mailbox as number, \
-  options, \
-  pager, \
-  password, \
-  tz as timezone \
-FROM voicemail \
-JOIN context ON context.name = voicemail.context \
-JOIN entity ON entity.name = context.entity WHERE entity.id = ${ENTITY_ID}" | ${DUMP} add --voicemails "${OUTPUT}"
+sudo -u postgres psql --csv "${DB_NAME}" -c "
+SELECT
+  concat('vm-', voicemail.uniqueid) as ref,
+  fullname as name,
+  (not cast(skipcheckpass as bool))::text as ask_password,
+  cast(attach as bool)::text as attach_audio,
+  context,
+  cast(deletevoicemail as bool)::text as delete_messages,
+  voicemail.email,
+  (not cast(voicemail.commented as bool))::text as enabled,
+  language,
+  maxmsg as max_messages,
+  mailbox as number,
+  options,
+  pager,
+  password,
+  tz as timezone
+FROM voicemail
+JOIN context ON context.name = voicemail.context
+JOIN entity ON entity.name = context.entity WHERE entity.id = ${ENTITY_ID}" \
+| sed 's/{/[/g' | sed 's/}/]/g' \
+| ${DUMP} add --voicemails "${OUTPUT}"
 
 # Incalls
 echo "exporting incoming calls"

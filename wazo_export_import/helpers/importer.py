@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
+import json
 
 from requests import HTTPError
 
@@ -171,6 +172,9 @@ class WazoAPI:
 
         return merged_users.values()
 
+    def list_voicemails(self):
+        return self._confd_client.voicemails.list()["items"]
+
     def create_or_update_contexts(self, body, import_set):
         if body.get("existing_resource"):
             return
@@ -258,8 +262,6 @@ class WazoAPI:
                 "context": context["name"],
             }
         elif destination["type_"] == "voicemails":
-            logger.info("Not implemented")
-            return
             confd_body["destination"] = {
                 "type": "voicemail",
                 "voicemail_id": destination["existing_resource"]["id"],
@@ -349,6 +351,24 @@ class WazoAPI:
             return self._create_users(body)
         else:
             return self._update_users(body, existing_resource)
+
+    def create_or_update_voicemails(self, body, import_set):
+        existing_resource = body.get("existing_resource", False)
+        if not existing_resource:
+            confd_body = {k: v for k, v in body.items() if v}
+            raw_options = confd_body.get("options", "")
+            if raw_options:
+                confd_body["options"] = json.loads(raw_options)
+            context = import_set.get_resource(body["context"])
+            confd_body["context"] = context["name"]
+            try:
+                return self._confd_client.voicemails.create(confd_body)
+            except HTTPError as e:
+                if is_error(e, 400):
+                    logger.info("invalid voicemail input: %s", confd_body)
+                raise
+        else:
+            logger.info("voicemail %s already exist. skipping", body["name"])
 
     def _update_users(self, body, existing_user):
         logger.info(
