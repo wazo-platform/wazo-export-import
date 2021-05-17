@@ -43,6 +43,8 @@ class ImportSet:
             for row in content[1:]:
                 resource = {k: convert_value(v) for k, v in zip(headers, row)}
                 resource["type_"] = type_
+                if type_ not in self._resources:
+                    self._resources[type_] = []
                 self._resources[type_].append(resource)
         logger.debug("resource building done")
 
@@ -51,7 +53,7 @@ class ImportSet:
         for type_, resources in self._resources.items():
             if not resources:
                 continue
-            if "ref" not in resources[1]:
+            if "ref" not in resources[0]:
                 continue
             for resource in resources:
                 reference = resource["ref"]

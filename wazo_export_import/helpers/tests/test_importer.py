@@ -48,21 +48,3 @@ class TestWazoAPI(unittest.TestCase):
             slug=s.tenant_slug,
         )
         assert api._tenant_uuid == s.tenant_uuid
-
-    def test_create_or_update_resource(self):
-        data_definition = {
-            "resource_type": {},
-        }
-
-        api = WazoAPI(s.username, s.password, data_definition=data_definition)
-        import_set = Mock(ImportSet)
-        import_set.list.return_value = [s.resource_1]
-
-        create_or_update = api.create_or_update_resource_type = Mock()
-
-        api.create_or_update_resources(import_set)
-
-        create_or_update.assert_called_once_with(s.resource_1)
-        response = create_or_update.return_value
-
-        import_set.update("resource_type", response)
