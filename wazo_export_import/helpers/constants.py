@@ -194,10 +194,10 @@ RESOURCE_FIELDS = {
             "timezone": {},
             "description": {},
             "enabled": {},
+            "closed_destination": {},
+            "closed_destination_options": {},
         },
-        "unique": [
-            ("ref",),
-        ],
+        "unique": [("ref",), ("name",)],
     },
     "schedule_times": {
         "fields": {

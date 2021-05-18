@@ -10,6 +10,7 @@ from wazo_auth_client import Client as AuthClient
 from wazo_confd_client import Client as ConfdClient
 
 from .constants import RESOURCE_FIELDS
+from .schedules import hours_start, hours_end, expand_range
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,7 @@ class WazoAPI:
 
         self._token_payload = {}
         self._group_members = {}
+        self._schedules = {}
 
     @property
     def global_sip_template(self):
@@ -181,6 +183,12 @@ class WazoAPI:
 
     def list_ring_groups(self):
         return self._confd_client.groups.list()["items"]
+
+    def list_schedules(self):
+        return self._confd_client.schedules.list()["items"]
+
+    def list_schedule_times(self):
+        return []
 
     def list_users(self):
         confd_users = self._confd_client.users.list()["items"]
@@ -496,6 +504,15 @@ class WazoAPI:
         if resource_type == "group_members":
             for uuid, members in self._group_members.items():
                 self._confd_client.groups.relations(uuid).update_user_members(members)
+        if resource_type == "schedule_times":
+            for body in self._schedules.values():
+                confd_body = {k: v for k, v in body.items() if v}
+                try:
+                    self._confd_client.schedules.create(confd_body)
+                except HTTPError as e:
+                    if is_error(e, 400):
+                        print("invalid schedule input", body)
+                    raise
 
     def _format_destination(self, ref, destination_options=None):
         # TODO(pc-m): try and use this function everywhere

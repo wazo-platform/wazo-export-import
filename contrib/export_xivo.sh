@@ -264,14 +264,27 @@ WHERE entity.id = '1' and incall.commented = '0';" | ${DUMP} add --incalls "${OU
 # Schedules
 echo "exporting schedules"
 sudo -u postgres psql  --csv "${DB_NAME}" -c " \
-SELECT \
+SELECT
   concat('sched-', schedule.id) as ref,
-  name,
-  timezone,
-  description,
-  not cast(commented as bool) as enabled
+  schedule.name,
+  schedule.timezone,
+  schedule.description,
+  not cast(schedule.commented as bool) as enabled,
+  CASE
+    WHEN schedule.fallback_action = 'group' THEN concat('grp-', schedule.fallback_actionid)
+    WHEN schedule.fallback_action = 'user' THEN userfeatures.uuid
+    WHEN schedule.fallback_action = 'sound' THEN 'sound'
+    WHEN schedule.fallback_action = 'voicemail' THEN concat('vm-', schedule.fallback_actionid)
+  END as closed_destination,
+  CASE
+    WHEN schedule.fallback_action = 'sound' THEN schedule.fallback_actionid
+    WHEN schedule.fallback_action = 'user' THEN schedule.fallback_actionargs
+    WHEN schedule.fallback_action = 'group' THEN schedule.fallback_actionargs
+    WHEN schedule.fallback_action = 'voicemail' THEN schedule.fallback_actionargs
+  END as closed_destination_options
 FROM schedule
-WHERE entity_id = '1'" | ${DUMP} add --schedules "${OUTPUT}"
+LEFT JOIN userfeatures ON schedule.fallback_action = 'user' AND schedule.fallback_actionid = cast(userfeatures.id as varchar)
+WHERE entity_id = '1' AND fallback_action IS NOT null" | ${DUMP} add --schedules "${OUTPUT}"
 
 sudo -u postgres psql --csv "${DB_NAME}" -c " \
 SELECT \
