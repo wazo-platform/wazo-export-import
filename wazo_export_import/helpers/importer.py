@@ -35,6 +35,7 @@ class WazoAPI:
         self._tenant_slug = tenant_slug
         self._data_definition = data_definition or RESOURCE_FIELDS
         self._global_sip_template = None
+        self._import_set = None
         # Only works on localhost at the moment
 
         self._auth_client = AuthClient(
@@ -64,7 +65,7 @@ class WazoAPI:
             )
         return self._global_sip_template
 
-    def create_or_update_resources(self, import_set):
+    def create_or_update_resources(self):
         for resource_type in self._data_definition.keys():
             create_or_update_fn = getattr(
                 self, f"create_or_update_{resource_type}", None
@@ -75,11 +76,11 @@ class WazoAPI:
                 continue
 
             existing_resources = list_fn()
-            resource_list = list(import_set.list(resource_type))
+            resource_list = list(self._import_set.list(resource_type))
             self.mark_existing(resource_type, resource_list, existing_resources)
 
             for i, resource in enumerate(resource_list):
-                create_or_update_fn(resource, import_set)
+                create_or_update_fn(resource)
             self._flush(resource_type)
 
     def mark_existing(self, resource_type, resource_list, existing_resources):
@@ -108,14 +109,15 @@ class WazoAPI:
 
             resource["existing_resource"] = matching_resource
 
-    def setup_relations(self, import_set):
+    def setup_relations(self):
         pass
 
     def import_all(self, import_set):
         self.authenticate()
         self.set_tenant()
+        self._import_set = import_set
 
-        self.create_or_update_resources(import_set)
+        self.create_or_update_resources()
 
     def authenticate(self):
         self._token_payload = self._auth_client.token.new("wazo_user", 3600)
@@ -143,13 +145,36 @@ class WazoAPI:
         return self._confd_client.contexts.list()["items"]
 
     def list_extensions(self):
-        return self._confd_client.extensions.list()["items"]
+        # Since context will most likely be changed before importing match using the new name
+        contexts = self._import_set.list("contexts")
+        context_map = {context["name"]: context["ref"] for context in contexts}
+        extensions = []
+        for extension in self._confd_client.extensions.list()["items"]:
+            configured_context = extension["context"]
+            matching_context = context_map[configured_context]
+            extension["context"] = matching_context
+            extensions.append(extension)
+        return extensions
 
     def list_group_members(self):
         return []
 
     def list_incalls(self):
-        return self._confd_client.incalls.list()["items"]
+        # Since context will most likely be changed before importing match using the new name
+        contexts = self._import_set.list("contexts")
+        context_map = {context["name"]: context["ref"] for context in contexts}
+
+        incalls = []
+        for incall in self._confd_client.incalls.list()["items"]:
+            for extension in incall["extensions"]:
+                incall["extension"] = "{exten}@{context}".format(
+                    exten=extension["exten"],
+                    context=context_map[extension["context"]],
+                )
+                continue
+            incalls.append(incall)
+
+        return incalls
 
     def list_lines(self):
         return self._confd_client.lines.list()["items"]
@@ -175,7 +200,7 @@ class WazoAPI:
     def list_voicemails(self):
         return self._confd_client.voicemails.list()["items"]
 
-    def create_or_update_contexts(self, body, import_set):
+    def create_or_update_contexts(self, body):
         if body.get("existing_resource"):
             return
 
@@ -187,7 +212,7 @@ class WazoAPI:
             raise
         return context
 
-    def create_or_update_extensions(self, body, import_set):
+    def create_or_update_extensions(self, body):
         if body.get("existing_resource"):
             return
 
@@ -195,14 +220,14 @@ class WazoAPI:
         if not destination_ref:
             return
 
-        destination = import_set.get_resource(destination_ref)
+        destination = self._import_set.get_resource(destination_ref)
         if destination["type_"] not in ("lines", "groups", "incalls"):
             return
 
         confd_body = dict(body)
         context_name = body.get("context")
         if context_name:
-            context = import_set.get_resource(context_name)
+            context = self._import_set.get_resource(context_name)
             confd_body["context"] = context["existing_resource"]["name"]
 
         try:
@@ -220,7 +245,7 @@ class WazoAPI:
 
         if destination["type_"] == "lines":
             user_ref = destination["user"]
-            user = import_set.get_resource(user_ref)["existing_resource"]
+            user = self._import_set.get_resource(user_ref)["existing_resource"]
             line = destination["existing_resource"]
             try:
                 self._confd_client.lines(line["id"]).add_extension(extension)
@@ -228,7 +253,7 @@ class WazoAPI:
                 raise
             self._confd_client.users(user["uuid"]).add_line(line)
 
-    def create_or_update_incalls(self, body, import_set):
+    def create_or_update_incalls(self, body):
         if body.get("existing_resource"):
             return
 
@@ -239,10 +264,10 @@ class WazoAPI:
             return
 
         context_ref = confd_body["context"]
-        context = import_set.get_resource(context_ref)
+        context = self._import_set.get_resource(context_ref)
         confd_body["context"] = context["name"]
 
-        destination = import_set.get_resource(destination_ref)
+        destination = self._import_set.get_resource(destination_ref)
         if destination["type_"] == "users":
             confd_body["destination"] = {
                 "type": "user",
@@ -255,7 +280,7 @@ class WazoAPI:
             }
         elif destination["type_"] == "extensions":
             context_ref = destination["context"]
-            context = import_set.get_resource(context_ref)
+            context = self._import_set.get_resource(context_ref)
             confd_body["destination"] = {
                 "type": "extension",
                 "exten": destination["exten"],
@@ -277,9 +302,18 @@ class WazoAPI:
             logger.info("Failed to create incall %s", confd_body)
             logger.info("destination: %s", destination)
             raise
+
+        extension = self._import_set.get_resource(confd_body["extension"])
+        if not extension:
+            raise Exception(
+                "Failed to create incall with extension {}".format(
+                    confd_body["extension"]
+                )
+            )
+        self._confd_client.incalls(incall).add_extension(extension["existing_resource"])
         body["existing_resource"] = incall
 
-    def create_or_update_lines(self, body, import_set):
+    def create_or_update_lines(self, body):
         if body.get("existing_resource"):
             return
 
@@ -306,20 +340,20 @@ class WazoAPI:
             else:
                 raise
 
-        context = import_set.get_resource(body["context"])["existing_resource"]
+        context = self._import_set.get_resource(body["context"])["existing_resource"]
         line = self._confd_client.lines.create(
             {"name": body["name"], "context": context["name"]}
         )
         body["existing_resource"] = line
         self._confd_client.lines(line["id"]).add_endpoint_sip(endpoint_sip)
 
-    def create_or_update_group_members(self, body, import_set):
+    def create_or_update_group_members(self, body):
         group_ref = body["group"]
         user_ref = body["user"]
         priority = body["priority"]
 
-        group = import_set.get_resource(group_ref)
-        user = import_set.get_resource(user_ref)
+        group = self._import_set.get_resource(group_ref)
+        user = self._import_set.get_resource(user_ref)
 
         if not group:
             logger.info("unable to find group %s to add user %s", group_ref, user_ref)
@@ -338,28 +372,73 @@ class WazoAPI:
             {"priority": priority, "uuid": user["existing_resource"]["uuid"]}
         )
 
-    def create_or_update_ring_groups(self, body, import_set):
+    def create_or_update_ring_groups(self, body):
         existing_resource = body.get("existing_resource", False)
         if not existing_resource:
             return self._create_ring_groups(body)
         else:
             logger.info("group %s already exist. skipping", body["label"])
 
-    def create_or_update_users(self, body, import_set):
+    def create_or_update_schedules(self, body):
+        existing_resource = body.get("existing_resource", False)
+        if not existing_resource:
+            destination = body.get("closed_destination")
+            if destination:
+                body["open_periods"] = []
+                body["exceptional_periods"] = []
+                body["closed_destination"] = self._format_destination(
+                    destination,
+                    destination_options=body.get("closed_destination_options"),
+                )
+                self._schedules[body["ref"]] = body
+        else:
+            logger.info("schedule %s already exists. skipping", body["name"])
+
+    def create_or_update_schedule_times(self, body):
+        schedule = self._schedules.get(body["schedule"])
+        if not schedule:
+            logger.info(
+                'ignoring schedule_times unknown schedule "%s"', body["schedule"]
+            )
+            return
+        months = expand_range(body["months"])
+        week_days = expand_range(body["weekdays"])
+        hours = {
+            "hours_start": hours_start(body["hours"]),
+            "hours_end": hours_end(body["hours"]),
+        }
+        if months:
+            hours["months"] = months
+        if week_days:
+            hours["week_days"] = week_days
+
+        if body["mode"] == "opened":
+            schedule["open_periods"].append(hours)
+        elif body["mode"] == "closed":
+            hours["month_days"] = expand_range(body["monthdays"])
+            destination_ref = body.get("destination")
+            if destination_ref:
+                hours["destination"] = self._format_destination(
+                    destination_ref,
+                    body.get("destination_options"),
+                )
+                schedule["exceptional_periods"].append(hours)
+
+    def create_or_update_users(self, body):
         existing_resource = body.get("existing_resource", False)
         if not existing_resource:
             return self._create_users(body)
         else:
             return self._update_users(body, existing_resource)
 
-    def create_or_update_voicemails(self, body, import_set):
+    def create_or_update_voicemails(self, body):
         existing_resource = body.get("existing_resource", False)
         if not existing_resource:
             confd_body = {k: v for k, v in body.items() if v}
             raw_options = confd_body.get("options", "")
             if raw_options:
                 confd_body["options"] = json.loads(raw_options)
-            context = import_set.get_resource(body["context"])
+            context = self._import_set.get_resource(body["context"])
             confd_body["context"] = context["name"]
             try:
                 return self._confd_client.voicemails.create(confd_body)
@@ -417,3 +496,47 @@ class WazoAPI:
         if resource_type == "group_members":
             for uuid, members in self._group_members.items():
                 self._confd_client.groups.relations(uuid).update_user_members(members)
+
+    def _format_destination(self, ref, destination_options=None):
+        # TODO(pc-m): try and use this function everywhere
+        if ref == "sound":
+            resource_type = "sound"
+        else:
+            resource = self._import_set.get_resource(ref)
+            resource_type = resource["type_"]
+
+        if resource_type == "users":
+            return {
+                "type": "user",
+                "user_id": resource["existing_resource"]["id"],
+            }
+        elif resource_type == "ring_groups":
+            return {
+                "type": "group",
+                "group_id": resource["existing_resource"]["id"],
+            }
+        elif resource_type == "voicemails":
+            destination = {
+                "type": "voicemail",
+                "voicemail_id": resource["existing_resource"]["id"],
+            }
+            if destination_options:
+                if "u" in destination_options:
+                    destination["greeting"] = "unavailable"
+                if "b" in destination_options:
+                    destination["greeting"] = "busy"
+                if "s" in destination_options:
+                    destination["skip_instructions"] = True
+            return destination
+        elif resource_type == "extensions":
+            context_ref = resource["context"]
+            context = self._import_set.get_resource(context_ref)
+            return {
+                "type": "extension",
+                "exten": resource["exten"],
+                "context": context["name"],
+            }
+        elif resource_type == "sound":
+            return {"type": "sound", "filename": destination_options}
+        else:
+            raise Exception("Unknown destination", ref, resource_type)

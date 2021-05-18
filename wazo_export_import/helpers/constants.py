@@ -171,8 +171,7 @@ RESOURCE_FIELDS = {
     "incalls": {
         "fields": {
             "ref": {},
-            "exten": {},
-            "context": {},
+            "extension": {},  # This is a ref exten@context
             "preprocess_subroutine": {},
             "caller_id_mode": {},
             "caller_id_name": {},
@@ -184,7 +183,7 @@ RESOURCE_FIELDS = {
         },
         "unique": [
             ("ref",),
-            ("exten", "context"),
+            ("extension"),
         ],
         "references": ["destination", "context"],
     },

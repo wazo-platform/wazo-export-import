@@ -233,31 +233,30 @@ JOIN entity ON entity.name = context.entity WHERE entity.id = ${ENTITY_ID}" \
 # Incalls
 echo "exporting incoming calls"
 sudo -u postgres psql --csv "${DB_NAME}" -c " \
-SELECT \
-  concat('incall-', incall.id) as ref, \
-  incall.exten, \
-  incall.context, \
-  incall.preprocess_subroutine, \
-  incall.description, \
-  CASE \
-    WHEN dialaction.action = 'user' THEN userfeatures.uuid \
-    WHEN dialaction.action = 'group' THEN concat('grp-', dialaction.actionarg1) \
-    WHEN dialaction.action = 'voicemail' THEN concat('vm-', dialaction.actionarg1) \
-    WHEN dialaction.action = 'extension' THEN concat(dialaction.actionarg1, '@', dialaction.actionarg2) \
-  END as destination, \
-  dialaction.actionarg2 as destination_options, \
-  callerid.mode as caller_id_mode, \
-  callerid.callerdisplay as caller_id_name, \
-  CASE \
-    WHEN schedule_path.schedule_id is not null THEN \
-      concat('sched-', schedule_path.schedule_id) \
-  END as schedule \
-FROM incall \
-JOIN context ON incall.context = context.name \
-JOIN entity ON entity.name = context.entity \
-JOIN dialaction ON dialaction.category = 'incall' AND cast(dialaction.categoryval as int) = incall.id \
-LEFT JOIN callerid ON cast(callerid.typeval as int) = incall.id AND callerid.type = 'incall' \
-LEFT JOIN userfeatures ON dialaction.action = 'user' AND dialaction.actionarg1 = cast(userfeatures.id as varchar) \
+SELECT
+  concat('incall-', incall.id) as ref,
+  concat(incall.exten, '@', incall.context) as extension,
+  incall.preprocess_subroutine,
+  incall.description,
+  CASE
+    WHEN dialaction.action = 'user' THEN userfeatures.uuid
+    WHEN dialaction.action = 'group' THEN concat('grp-', dialaction.actionarg1)
+    WHEN dialaction.action = 'voicemail' THEN concat('vm-', dialaction.actionarg1)
+    WHEN dialaction.action = 'extension' THEN concat(dialaction.actionarg1, '@', dialaction.actionarg2)
+  END as destination,
+  dialaction.actionarg2 as destination_options,
+  callerid.mode as caller_id_mode,
+  callerid.callerdisplay as caller_id_name,
+  CASE
+    WHEN schedule_path.schedule_id is not null THEN
+      concat('sched-', schedule_path.schedule_id)
+  END as schedule
+FROM incall
+JOIN context ON incall.context = context.name
+JOIN entity ON entity.name = context.entity
+JOIN dialaction ON dialaction.category = 'incall' AND cast(dialaction.categoryval as int) = incall.id
+LEFT JOIN callerid ON cast(callerid.typeval as int) = incall.id AND callerid.type = 'incall'
+LEFT JOIN userfeatures ON dialaction.action = 'user' AND dialaction.actionarg1 = cast(userfeatures.id as varchar)
 LEFT JOIN schedule_path ON schedule_path.pathid = incall.id AND schedule_path.path = 'incall'
 WHERE entity.id = '1' and incall.commented = '0';" | ${DUMP} add --incalls "${OUTPUT}"
 
