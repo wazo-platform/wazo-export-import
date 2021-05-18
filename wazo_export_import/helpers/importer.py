@@ -275,40 +275,15 @@ class WazoAPI:
         context = self._import_set.get_resource(context_ref)
         confd_body["context"] = context["name"]
 
-        destination = self._import_set.get_resource(destination_ref)
-        if destination["type_"] == "users":
-            confd_body["destination"] = {
-                "type": "user",
-                "user_id": destination["existing_resource"]["id"],
-            }
-        elif destination["type_"] == "ring_groups":
-            confd_body["destination"] = {
-                "type": "group",
-                "group_id": destination["existing_resource"]["id"],
-            }
-        elif destination["type_"] == "extensions":
-            context_ref = destination["context"]
-            context = self._import_set.get_resource(context_ref)
-            confd_body["destination"] = {
-                "type": "extension",
-                "exten": destination["exten"],
-                "context": context["name"],
-            }
-        elif destination["type_"] == "voicemails":
-            confd_body["destination"] = {
-                "type": "voicemail",
-                "voicemail_id": destination["existing_resource"]["id"],
-                # TODO(pc-m): voicemail options
-            }
-            if confd_body.get("destination_options"):
-                logger.info("destionation_options: %s", confd_body)
-                raise
+        confd_body["destination"] = self._format_destination(
+            destination_ref,
+            destination_options=confd_body.get("destination_options"),
+        )
 
         try:
             incall = self._confd_client.incalls.create(confd_body)
         except HTTPError:
             logger.info("Failed to create incall %s", confd_body)
-            logger.info("destination: %s", destination)
             raise
 
         extension = self._import_set.get_resource(confd_body["extension"])
@@ -464,6 +439,10 @@ class WazoAPI:
 
     def _create_ring_groups(self, body):
         confd_body = {k: v for k, v in body.items() if v}
+        fallbacks = self._format_fallbacks(body)
+        if fallbacks:
+            confd_body["fallbacks"] = fallbacks
+
         try:
             resource = self._confd_client.groups.create(confd_body)
             body["existing_resource"] = resource
@@ -475,6 +454,10 @@ class WazoAPI:
 
     def _create_users(self, body):
         confd_body = {k: v for k, v in body.items() if v}
+        fallbacks = self._format_fallbacks(body)
+        if fallbacks:
+            confd_body["fallbacks"] = fallbacks
+
         try:
             confd_user = self._confd_client.users.create(confd_body)
         except HTTPError as e:
@@ -514,8 +497,44 @@ class WazoAPI:
                         print("invalid schedule input", body)
                     raise
 
+    def _format_fallbacks(self, body):
+        busy_ref = body.get("fallback_busy")
+        busy_options = body.get("fallback_busy_argument")
+
+        congestion_ref = body.get("fallback_congestion")
+        congestion_options = body.get("fallback_congestion_argument")
+
+        fail_ref = body.get("fallback_fail")
+        fail_options = body.get("fallback_fail_argument")
+
+        no_answer_ref = body.get("fallback_no_answer")
+        no_answer_options = body.get("fallback_no_answer_argument")
+
+        fallbacks = {}
+        if busy_ref:
+            destination = self._format_destination(busy_ref, busy_options)
+            if destination:
+                fallbacks["busy_destination"] = destination
+
+        if congestion_ref:
+            destination = self._format_destination(congestion_ref, congestion_options)
+            if destination:
+                fallbacks["congestion_destination"] = destination
+
+        if fail_ref:
+            destination = self._format_destination(fail_ref, fail_options)
+            if destination:
+                if destination:
+                    fallbacks["fail_destination"] = destination
+
+        if no_answer_ref:
+            destination = self._format_destination(no_answer_ref, no_answer_options)
+            if destination:
+                fallbacks["noanswer_destination"] = destination
+
+        return fallbacks
+
     def _format_destination(self, ref, destination_options=None):
-        # TODO(pc-m): try and use this function everywhere
         if ref == "sound":
             resource_type = "sound"
         else:
