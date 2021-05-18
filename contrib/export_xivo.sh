@@ -220,7 +220,7 @@ SELECT
   language,
   maxmsg as max_messages,
   mailbox as number,
-  options,
+  to_json(options) as options,
   pager,
   password,
   tz as timezone

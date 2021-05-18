@@ -162,9 +162,8 @@ RESOURCE_FIELDS = {
         },
         "unique": [
             ("ref",),
-            (
-                "fullname"
-            ),  # NOTE(pc-m): context is not the first unique because context can be changed...
+            # NOTE(pc-m): context is not the first unique because context can be changed...
+            ("name",),
             ("context", "number"),
         ],
         "references": ["context"],
