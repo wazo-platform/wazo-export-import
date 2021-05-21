@@ -61,6 +61,10 @@ class WazoAPI:
         self._token_payload = {}
         self._group_members = {}
         self._schedules = {}
+        self._fallbacks = {
+            "users": [],
+            "ring_groups": [],
+        }
         self._user_voicemails = {}
         self._schedule_associations = {
             "users": [],
@@ -94,6 +98,11 @@ class WazoAPI:
             for i, resource in enumerate(resource_list):
                 create_or_update_fn(resource)
             self._flush(resource_type)
+
+        for resource_type, resources in self._fallbacks.items():
+            update_fallbacks_fn = getattr(self, f"update_fallbacks_{resource_type}")
+            for resource in resources:
+                update_fallbacks_fn(resource)
 
         for resource_type, resources in self._schedule_associations.items():
             set_schedule_fn = getattr(self, f"set_{resource_type}_schedule")
@@ -286,14 +295,13 @@ class WazoAPI:
         if not destination_ref:
             return
 
-        context_ref = confd_body["context"]
-        context = self._import_set.get_resource(context_ref)
-        confd_body["context"] = context["name"]
-
         confd_body["destination"] = self._format_destination(
             destination_ref,
             destination_options=confd_body.get("destination_options"),
         )
+        if not confd_body["destination"]:
+            logger.info("skipping incoming call %s: missing destination", body["ref"])
+            return
 
         try:
             incall = self._confd_client.incalls.create(confd_body)
@@ -383,6 +391,14 @@ class WazoAPI:
         else:
             logger.info("group %s already exist. skipping", body["label"])
 
+    def update_fallbacks_ring_groups(self, body):
+        group = body["existing_resource"]
+
+        fallbacks = self._format_fallbacks(body)
+        if fallbacks:
+            group["fallbacks"] = fallbacks
+            self._confd_client.groups.update(group)
+
     def create_or_update_schedules(self, body):
         existing_resource = body.get("existing_resource", False)
         if not existing_resource:
@@ -435,6 +451,14 @@ class WazoAPI:
         else:
             return self._update_users(body, existing_resource)
 
+    def update_fallbacks_users(self, body):
+        user = body["existing_resource"]
+
+        fallbacks = self._format_fallbacks(body)
+        if fallbacks:
+            user["fallbacks"] = fallbacks
+            self._confd_client.users.update(user)
+
     def create_or_update_voicemails(self, body):
         existing_resource = body.get("existing_resource", False)
         if not existing_resource:
@@ -462,9 +486,6 @@ class WazoAPI:
 
     def _create_ring_groups(self, body):
         confd_body = {k: v for k, v in body.items() if v}
-        fallbacks = self._format_fallbacks(body)
-        if fallbacks:
-            confd_body["fallbacks"] = fallbacks
 
         try:
             resource = self._confd_client.groups.create(confd_body)
@@ -479,13 +500,14 @@ class WazoAPI:
             self._schedule_associations["ring_groups"].append(
                 (resource["id"], schedule_ref)
             )
+
+        if self._group_has_fallbacks(body):
+            self._fallbacks["ring_groups"].append(body)
+
         return resource
 
     def _create_users(self, body):
         confd_body = {k: v for k, v in body.items() if v}
-        fallbacks = self._format_fallbacks(body)
-        if fallbacks:
-            confd_body["fallbacks"] = fallbacks
 
         try:
             confd_user = self._confd_client.users.create(confd_body)
@@ -520,7 +542,27 @@ class WazoAPI:
                 (confd_user["uuid"], schedule_ref)
             )
 
+        if self._user_has_fallbacks(body):
+            self._fallbacks["users"].append(body)
+
         return confd_user
+
+    def _user_has_fallbacks(self, body):
+        keys = [
+            "fallback_busy",
+            "fallback_congestion",
+            "fallback_fail",
+            "fallback_no_answer",
+        ]
+        for key in keys:
+            destination_ref = body.get(key)
+            if destination_ref:
+                return True
+        return False
+
+    def _group_has_fallbacks(self, body):
+        destination_ref = body.get("fallback_no_answer")
+        return True if destination_ref else False
 
     def _flush(self, resource_type):
         if resource_type == "group_members":
