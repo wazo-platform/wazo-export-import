@@ -3,6 +3,7 @@
 
 import logging
 import json
+import re
 
 from requests import HTTPError
 
@@ -13,6 +14,9 @@ from .constants import RESOURCE_FIELDS
 from .schedules import hours_start, hours_end, expand_range
 
 logger = logging.getLogger(__name__)
+
+
+EXTENSION_RE = re.compile(r"^([0-9]+)@([a-zA-Z0-9-_]+)$")
 
 
 def is_error(exception, expected_status_code):
@@ -540,6 +544,17 @@ class WazoAPI:
         else:
             resource = self._import_set.get_resource(ref)
             resource_type = resource["type_"]
+            if not resource.get("existing_resource"):
+                # NOTE(pc-m): This might be an external extension
+                match = EXTENSION_RE.search(ref)
+                if match:
+                    return {
+                        "type": "extension",
+                        "exten": match.group(1),
+                        "context": match.group(2),
+                    }
+                logger.info("Failed to find a matching resource for reference %s", ref)
+                return
 
         if resource_type == "users":
             return {
