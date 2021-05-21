@@ -61,6 +61,7 @@ class WazoAPI:
         self._token_payload = {}
         self._group_members = {}
         self._schedules = {}
+        self._user_voicemails = {}
         self._schedule_associations = {
             "users": [],
             "ring_groups": [],
@@ -509,6 +510,10 @@ class WazoAPI:
                 print("invalid auth user input", body)
             raise
 
+        voicemail = body.get("voicemail")
+        if voicemail:
+            self._user_voicemails[confd_user["uuid"]] = voicemail
+
         schedule_ref = body.get("schedule")
         if schedule_ref:
             self._schedule_associations["users"].append(
@@ -528,8 +533,17 @@ class WazoAPI:
                     self._confd_client.schedules.create(confd_body)
                 except HTTPError as e:
                     if is_error(e, 400):
-                        print("invalid schedule input", body)
-                    raise
+                        print("skipping schedule %s invalid schedule input", confd_body)
+                    else:
+                        raise
+        if resource_type == "voicemails":
+            for user_uuid, voicemail_ref in self._user_voicemails.items():
+                voicemail = self._import_set.get_resource(voicemail_ref)
+                if not voicemail or not voicemail["existing_resource"]:
+                    continue
+                self._confd_client.users(user_uuid).add_voicemail(
+                    voicemail["existing_resource"],
+                )
 
     def _format_fallbacks(self, body):
         busy_ref = body.get("fallback_busy")
