@@ -61,6 +61,11 @@ class WazoAPI:
         self._token_payload = {}
         self._group_members = {}
         self._schedules = {}
+        self._schedule_associations = {
+            "users": [],
+            "ring_groups": [],
+            "incalls": [],
+        }
 
     @property
     def global_sip_template(self):
@@ -88,6 +93,11 @@ class WazoAPI:
             for i, resource in enumerate(resource_list):
                 create_or_update_fn(resource)
             self._flush(resource_type)
+
+        for resource_type, resources in self._schedule_associations.items():
+            set_schedule_fn = getattr(self, f"set_{resource_type}_schedule")
+            for id_, schedule_ref in resources:
+                set_schedule_fn(id_, schedule_ref)
 
     def mark_existing(self, resource_type, resource_list, existing_resources):
         unique_columns = None
@@ -300,6 +310,12 @@ class WazoAPI:
         self._confd_client.incalls(incall).add_extension(extension["existing_resource"])
         body["existing_resource"] = incall
 
+        schedule_ref = body.get("schedule")
+        if schedule_ref:
+            self._schedule_associations["incalls"].append((incall["id"], schedule_ref))
+
+        return incall
+
     def create_or_update_lines(self, body):
         if body.get("existing_resource"):
             return
@@ -428,11 +444,13 @@ class WazoAPI:
             context = self._import_set.get_resource(body["context"])
             confd_body["context"] = context["name"]
             try:
-                return self._confd_client.voicemails.create(confd_body)
+                voicemail = self._confd_client.voicemails.create(confd_body)
             except HTTPError as e:
                 if is_error(e, 400):
                     logger.info("invalid voicemail input: %s", confd_body)
                 raise
+            body["existing_resource"] = voicemail
+            return voicemail
         else:
             logger.info("voicemail %s already exist. skipping", body["name"])
 
@@ -450,11 +468,17 @@ class WazoAPI:
         try:
             resource = self._confd_client.groups.create(confd_body)
             body["existing_resource"] = resource
-            return resource
         except HTTPError as e:
             if is_error(e, 400):
                 logger.info("invalid group input: %s", body)
             raise
+
+        schedule_ref = body.get("schedule")
+        if schedule_ref:
+            self._schedule_associations["ring_groups"].append(
+                (resource["id"], schedule_ref)
+            )
+        return resource
 
     def _create_users(self, body):
         confd_body = {k: v for k, v in body.items() if v}
@@ -484,6 +508,12 @@ class WazoAPI:
             if is_error(e, 400):
                 print("invalid auth user input", body)
             raise
+
+        schedule_ref = body.get("schedule")
+        if schedule_ref:
+            self._schedule_associations["users"].append(
+                (confd_user["uuid"], schedule_ref)
+            )
 
         return confd_user
 
@@ -591,3 +621,18 @@ class WazoAPI:
             return {"type": "sound", "filename": destination_options}
         else:
             raise Exception("Unknown destination", ref, resource_type)
+
+    def set_incalls_schedule(self, incall_id, schedule_ref):
+        schedule_body = self._import_set.get_resource(schedule_ref)
+        schedule = schedule_body["existing_resource"]
+        self._confd_client.incalls(incall_id).add_schedule(schedule)
+
+    def set_ring_groups_schedule(self, ring_group_id, schedule_ref):
+        schedule_body = self._import_set.get_resource(schedule_ref)
+        schedule = schedule_body["existing_resource"]
+        self._confd_client.groups(ring_group_id).add_schedule(schedule)
+
+    def set_users_schedule(self, user_uuid, schedule_ref):
+        schedule_body = self._import_set.get_resource(schedule_ref)
+        schedule = schedule_body["existing_resource"]
+        self._confd_client.users(user_uuid).add_schedule(schedule)
