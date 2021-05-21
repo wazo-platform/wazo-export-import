@@ -592,10 +592,12 @@ class WazoAPI:
                 # NOTE(pc-m): This might be an external extension
                 match = EXTENSION_RE.search(ref)
                 if match:
+                    context_ref = match.group(2)
+                    context = self._import_set.get_resource(context_ref)
                     return {
                         "type": "extension",
                         "exten": match.group(1),
-                        "context": match.group(2),
+                        "context": context["name"],
                     }
                 logger.info("Failed to find a matching resource for reference %s", ref)
                 return
