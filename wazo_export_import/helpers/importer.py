@@ -122,7 +122,7 @@ class WazoAPI:
         self.create_or_update_resources()
 
     def authenticate(self):
-        self._token_payload = self._auth_client.token.new("wazo_user", 3600)
+        self._token_payload = self._auth_client.token.new("wazo_user", 3600 * 2)
 
         token = self._token_payload["token"]
         self._auth_client.set_token(token)
