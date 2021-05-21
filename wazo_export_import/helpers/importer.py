@@ -307,7 +307,7 @@ class WazoAPI:
         endpoint_body = {
             "label": body["name"],
             "name": body["name"],
-            "endpoint_endpoint_options": [
+            "auth_section_options": [
                 ["username", body["name"]],
                 ["password", body["password"]],
             ],
