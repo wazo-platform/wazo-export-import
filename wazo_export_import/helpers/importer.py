@@ -104,8 +104,12 @@ class WazoAPI:
             for resource in resources:
                 update_fallbacks_fn(resource)
 
+        logger.info(
+            "Got %s resource types to associate", len(self._schedule_associations)
+        )
         for resource_type, resources in self._schedule_associations.items():
             set_schedule_fn = getattr(self, f"set_{resource_type}_schedule")
+            logger.info("associating %s %s to schedules", len(resources), resource_type)
             for id_, schedule_ref in resources:
                 set_schedule_fn(id_, schedule_ref)
 
@@ -321,6 +325,11 @@ class WazoAPI:
 
         schedule_ref = body.get("schedule")
         if schedule_ref:
+            logger.info(
+                "appending schedule incall association %s %s",
+                incall["id"],
+                schedule_ref,
+            )
             self._schedule_associations["incalls"].append((incall["id"], schedule_ref))
 
         return incall
@@ -400,7 +409,7 @@ class WazoAPI:
             self._confd_client.groups.update(group)
 
     def create_or_update_schedules(self, body):
-        existing_resource = body.get("existing_resource", False)
+        existing_resource = body.get("existing_resource")
         if not existing_resource:
             destination = body.get("closed_destination")
             if destination:
@@ -497,6 +506,11 @@ class WazoAPI:
 
         schedule_ref = body.get("schedule")
         if schedule_ref:
+            logger.info(
+                "appending schedule group association %s %s",
+                resource["id"],
+                schedule_ref,
+            )
             self._schedule_associations["ring_groups"].append(
                 (resource["id"], schedule_ref)
             )
@@ -515,6 +529,10 @@ class WazoAPI:
             if is_error(e, 400):
                 print("invalid user input", body)
             raise
+        # remove deprecated field to avoid a 400 while updating this user later
+        if "call_record_enabled" in confd_user:
+            del confd_user["call_record_enabled"]
+
         body["uuid"] = confd_user["uuid"]
         body["existing_resource"] = confd_user
 
@@ -538,6 +556,11 @@ class WazoAPI:
 
         schedule_ref = body.get("schedule")
         if schedule_ref:
+            logger.info(
+                "appending schedule user association %s %s",
+                confd_user["uuid"],
+                schedule_ref,
+            )
             self._schedule_associations["users"].append(
                 (confd_user["uuid"], schedule_ref)
             )
@@ -572,7 +595,9 @@ class WazoAPI:
             for body in self._schedules.values():
                 confd_body = {k: v for k, v in body.items() if v}
                 try:
-                    self._confd_client.schedules.create(confd_body)
+                    body["existing_resource"] = self._confd_client.schedules.create(
+                        confd_body
+                    )
                 except HTTPError as e:
                     if is_error(e, 400):
                         print("skipping schedule %s invalid schedule input", confd_body)
@@ -681,16 +706,28 @@ class WazoAPI:
             raise Exception("Unknown destination", ref, resource_type)
 
     def set_incalls_schedule(self, incall_id, schedule_ref):
-        schedule_body = self._import_set.get_resource(schedule_ref)
-        schedule = schedule_body["existing_resource"]
-        self._confd_client.incalls(incall_id).add_schedule(schedule)
+        logger.info("associating incall %s to schedule %s", incall_id, schedule_ref)
+        schedule = self._find_schedule(schedule_ref)
+        if schedule:
+            self._confd_client.incalls(incall_id).add_schedule(schedule)
+        else:
+            logger.info("failed to find schedule %s", schedule_ref)
 
     def set_ring_groups_schedule(self, ring_group_id, schedule_ref):
-        schedule_body = self._import_set.get_resource(schedule_ref)
-        schedule = schedule_body["existing_resource"]
-        self._confd_client.groups(ring_group_id).add_schedule(schedule)
+        logger.info("associating group %s to schedule %s", ring_group_id, schedule_ref)
+        schedule = self._find_schedule(schedule_ref)
+        if schedule:
+            self._confd_client.groups(ring_group_id).add_schedule(schedule)
+        else:
+            logger.info("failed to find schedule %s", schedule_ref)
 
     def set_users_schedule(self, user_uuid, schedule_ref):
+        schedule = self._find_schedule(schedule_ref)
+        if schedule:
+            self._confd_client.users(user_uuid).add_schedule(schedule)
+
+    def _find_schedule(self, schedule_ref):
         schedule_body = self._import_set.get_resource(schedule_ref)
-        schedule = schedule_body["existing_resource"]
-        self._confd_client.users(user_uuid).add_schedule(schedule)
+        # If the schedule failed to get created there won't be an existing_resource
+        schedule = schedule_body.get("existing_resource") or {}
+        return schedule

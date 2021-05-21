@@ -198,6 +198,7 @@ RESOURCE_FIELDS = {
             "closed_destination_options": {},
         },
         "unique": [("ref",), ("name",)],
+        "references": ["closed_destination"],
     },
     "schedule_times": {
         "fields": {
@@ -213,6 +214,6 @@ RESOURCE_FIELDS = {
         "unique": [
             ("schedule", "hours", "weekdays", "monthdays", "months"),
         ],
-        "references": ["destination"],
+        "references": ["destination", "schedule"],
     },
 }
