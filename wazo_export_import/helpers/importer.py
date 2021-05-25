@@ -99,8 +99,10 @@ class WazoAPI:
                 create_or_update_fn(resource)
             self._flush(resource_type)
 
+        logger.info("Got %s resource types with fallbacks", len(self._fallbacks))
         for resource_type, resources in self._fallbacks.items():
             update_fallbacks_fn = getattr(self, f"update_fallbacks_{resource_type}")
+            logger.info("setting fallbacks on %s %s", len(resources), resource_type)
             for resource in resources:
                 update_fallbacks_fn(resource)
 
@@ -405,8 +407,7 @@ class WazoAPI:
 
         fallbacks = self._format_fallbacks(body)
         if fallbacks:
-            group["fallbacks"] = fallbacks
-            self._confd_client.groups.update(group)
+            self._confd_client.groups(group["uuid"]).update_fallbacks(fallbacks)
 
     def create_or_update_schedules(self, body):
         existing_resource = body.get("existing_resource")
@@ -465,8 +466,7 @@ class WazoAPI:
 
         fallbacks = self._format_fallbacks(body)
         if fallbacks:
-            user["fallbacks"] = fallbacks
-            self._confd_client.users.update(user)
+            self._confd_client.users(user["uuid"]).update_fallbacks(fallbacks)
 
     def create_or_update_voicemails(self, body):
         existing_resource = body.get("existing_resource", False)
@@ -625,7 +625,12 @@ class WazoAPI:
         no_answer_ref = body.get("fallback_no_answer")
         no_answer_options = body.get("fallback_no_answer_argument")
 
-        fallbacks = {}
+        fallbacks = {
+            "busy_destination": None,
+            "congestion_destination": None,
+            "fail_destination": None,
+            "noanswer_destination": None,
+        }
         if busy_ref:
             destination = self._format_destination(busy_ref, busy_options)
             if destination:
@@ -639,8 +644,7 @@ class WazoAPI:
         if fail_ref:
             destination = self._format_destination(fail_ref, fail_options)
             if destination:
-                if destination:
-                    fallbacks["fail_destination"] = destination
+                fallbacks["fail_destination"] = destination
 
         if no_answer_ref:
             destination = self._format_destination(no_answer_ref, no_answer_options)

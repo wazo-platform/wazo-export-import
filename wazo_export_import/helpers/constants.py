@@ -176,7 +176,6 @@ RESOURCE_FIELDS = {
             "caller_id_mode": {},
             "caller_id_name": {},
             "destination": {},
-            "destination_type": {},
             "destination_options": {},
             "description": {},
             "schedule": {},
