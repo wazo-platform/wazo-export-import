@@ -9,7 +9,7 @@ dump file and filling it manually.
 
 # The Dump File
 
-The dump file is a .odt file that can be read by `wazo-import-dump` to create multiple resources.
+The dump file is a .ods file that can be read by `wazo-import-dump` to create multiple resources.
 
 The dump file contains many tabs for each resources.
 
@@ -25,15 +25,15 @@ To generate a new empty file that can be used to fill the blanks to build a comp
 can be done with the `new` command
 
 ```sh
-wazo-generate-dump new <filename.odt>
+wazo-generate-dump new <filename.ods>
 ```
 
-This will generate a valid odt file that can be imported in a spreadsheet program and modified to
+This will generate a valid ods file that can be imported in a spreadsheet program and modified to
 your needs. It can also be used to add data using other commands.
 
 ### Listing resources
 
-The dump file is made of many resources. Each resource is a separate tab in the odt file. To view a
+The dump file is made of many resources. Each resource is a separate tab in the ods file. To view a
 list of supported resources use the following command
 
 ```sh
@@ -60,8 +60,8 @@ to a dump file.
 wazo-generate-dump add --users <filename.odf> < cat user.csv
 ```
 
-This will do many things. First if the .odt file does not exist it will get created. Then the
-users in the user.csv files will be added to the "users" tab of the .odt file matching the headers
+This will do many things. First if the .ods file does not exist it will get created. Then the
+users in the user.csv files will be added to the "users" tab of the .ods file matching the headers
 in the first row of the CSV file.
 
 If a resource being imported already exists in the file it will be replaced by the new one.
