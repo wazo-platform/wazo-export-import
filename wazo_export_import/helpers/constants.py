@@ -225,6 +225,6 @@ RESOURCE_FIELDS = {
             "type": {},
         },
         "unique": [("user", "position")],
-        "references": ["user", "destination"],
+        "references": ["user"],  # Not all destinations are references
     },
 }

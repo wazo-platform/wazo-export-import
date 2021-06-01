@@ -71,6 +71,7 @@ class WazoAPI:
             "ring_groups": [],
             "incalls": [],
         }
+        self._user_fk = {}
 
     @property
     def global_sip_template(self):
@@ -114,6 +115,10 @@ class WazoAPI:
             logger.info("associating %s %s to schedules", len(resources), resource_type)
             for id_, schedule_ref in resources:
                 set_schedule_fn(id_, schedule_ref)
+
+        logger.info("Got %s users with function keys", len(self._user_fk))
+        for user_ref, func_keys in self._user_fk.items():
+            self.set_user_fk(user_ref, func_keys)
 
     def mark_existing(self, resource_type, resource_list, existing_resources):
         unique_columns = None
@@ -184,6 +189,9 @@ class WazoAPI:
             extension["context"] = matching_context
             extensions.append(extension)
         return extensions
+
+    def list_fk(self):
+        return []
 
     def list_group_members(self):
         return []
@@ -287,6 +295,18 @@ class WazoAPI:
             except HTTPError:
                 raise
             self._confd_client.users(user["uuid"]).add_line(line)
+
+    def create_or_update_fk(self, body):
+        destination_ref = body.get("destination")
+        if not destination_ref:
+            logger.info("FK has no destination, skipping: %s", body)
+            return
+
+        user_ref = body["user"]
+        if user_ref not in self._user_fk:
+            self._user_fk[user_ref] = [body]
+        else:
+            self._user_fk[user_ref].append(body)
 
     def create_or_update_incalls(self, body):
         if body.get("existing_resource"):
@@ -726,6 +746,69 @@ class WazoAPI:
         schedule = self._find_schedule(schedule_ref)
         if schedule:
             self._confd_client.users(user_uuid).add_schedule(schedule)
+
+    def set_user_fk(self, user_ref, func_keys):
+        user = self._import_set.get_resource(user_ref)
+        if not user:
+            logger.info("Cannot find a matching user for ref %s", user_ref)
+            return
+        user_instance = user.get("existing_resource")
+        if not user_instance:
+            logger.info("Referenced user does not exist on the stack: %s", user_ref)
+            return
+
+        body = {"keys": {}}
+        for func_key in func_keys:
+            pos = func_key.get("position")
+            if not pos:
+                continue
+            destination = self._fk_destination(func_key)
+            if not destination:
+                continue
+            body["keys"][pos] = {
+                "destination": destination,
+                "blf": func_key.get("blf", False),
+                "label": func_key.get("label", ""),
+            }
+
+        self._confd_client.users(user_instance["uuid"]).update_funckeys(body)
+
+    def _fk_destination(self, func_key):
+        destination_ref = func_key.get("destination")
+        if not destination_ref:
+            return
+
+        type_ = func_key.get("type")
+        if type_ == "custom":
+            return {"type": type_, "exten": destination_ref}
+        elif type_ == "user":
+            user = self._import_set.get_resource(destination_ref)
+            if not user:
+                logger.info("Failed to find matching user: %s", destination_ref)
+                return
+            user_instance = user.get("existing_resource")
+            if not user_instance:
+                logger.info(
+                    "Referenced user does not exist on the stack: %s", destination_ref
+                )
+                return
+            user_id = user_instance["id"]
+            return {"type": type_, "user_id": user_id}
+        elif type_ == "group":
+            group = self._import_set.get_resource(destination_ref)
+            if not group:
+                logger.info("failed to find matching group: %s", destination_ref)
+                return
+            group_instance = group.get("existing_resource")
+            if not group_instance:
+                logger.info(
+                    "Referenced group does not exist on the stack: %s", destination_ref
+                )
+                return
+            group_id = group_instance["id"]
+            return {"type": type_, "group_id": group_id}
+        else:
+            logger.info("Unknown function key type: %s", type_)
 
     def _find_schedule(self, schedule_ref):
         schedule_body = self._import_set.get_resource(schedule_ref)
