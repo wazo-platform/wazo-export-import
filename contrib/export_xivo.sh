@@ -22,6 +22,29 @@ echo "Exporting from DB ${DB_NAME}"
 
 # TODO This script should be limited to a single tenant.
 
+sudo -u postgres psql --csv "${DB_NAME}" -c " \
+SELECT
+  owner.uuid as user,
+  func_key_mapping.label as label,
+  func_key_mapping.position as position,
+  func_key_mapping.blf::text as blf,
+  func_key_destination_type.name as type,
+  CASE
+    WHEN func_key_destination_type.name = 'user' THEN user_dest.uuid
+    WHEN func_key_destination_type.name = 'group' THEN concat('grp-', func_key_dest_group.group_id)
+    WHEN func_key_destination_type.name = 'custom' THEN func_key_dest_custom.exten
+  END AS destination
+FROM func_key_mapping
+JOIN userfeatures owner ON func_key_mapping.template_id = owner.func_key_private_template_id
+JOIN func_key ON func_key_mapping.func_key_id = func_key.id
+JOIN func_key_destination_type ON func_key_destination_type.id = func_key_mapping.destination_type_id
+LEFT JOIN func_key_dest_user ON func_key_mapping.func_key_id = func_key_dest_user.func_key_id AND func_key_destination_type.name = 'user'
+LEFT JOIN func_key_dest_group ON func_key_mapping.func_key_id = func_key_dest_group.func_key_id AND func_key_destination_type.name = 'group'
+LEFT JOIN userfeatures user_dest ON func_key_dest_user.user_id = user_dest.id
+LEFT JOIN func_key_dest_custom ON func_key_mapping.func_key_id = func_key_dest_custom.func_key_id AND func_key_destination_type.name = 'custom'
+WHERE owner.entityid = ${ENTITY_ID}
+" | ${DUMP} add --fk "${OUTPUT}"
+
 # Users
 echo "exporting users"
 sudo -u postgres psql --csv "${DB_NAME}" -c " \
