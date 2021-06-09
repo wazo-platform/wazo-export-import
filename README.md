@@ -74,5 +74,5 @@ Unknown columns in the CSV file will stop the import with an error message
 Once you have a complete dump file you can import it into a stack using `wazo-import-dump`
 
 ```sh
-wazo-import-dump import --username <username> --password <password> [--tenant <tenant-uuid>] [--tenant-slug <slug for new tenant>] dump_file.ods
+wazo-import-dump import --username <username> --password <password> --tenant <tenant-uuid> dump_file.ods
 ```
