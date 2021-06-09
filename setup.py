@@ -5,7 +5,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="wazo_export_import",
-    version="1.0",
+    version="1.0.0",
     description="Export/Import tool for Wazo",
     auth="Wazo Authors",
     author_email="dev@wazo.community",
@@ -15,12 +15,16 @@ setup(
     entry_points={
         "console_scripts": [
             "wazo-generate-dump = wazo_export_import.main:dump",
+            "wazo-import-dump = wazo_export_import.main:import_",
         ],
         "wazo_export_import.dump_commands": [
             "list_resources = wazo_export_import.commands:ListResources",
             "list_fields = wazo_export_import.commands:ListFields",
             "add = wazo_export_import.commands:Add",
             "new = wazo_export_import.commands:New",
+        ],
+        "wazo_export_import.import_commands": [
+            "import = wazo_export_import.commands:Import",
         ],
     },
 )

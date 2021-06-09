@@ -4,12 +4,12 @@
 from cliff import app, commandmanager
 
 
-class WazoGenerateDump(app.App):
+class WazoImportDump(app.App):
     def __init__(self):
         super().__init__(
-            description="A dump file builder for Wazo",
+            description="Dump file importer for Wazo",
             command_manager=commandmanager.CommandManager(
-                "wazo_export_import.dump_commands"
+                "wazo_export_import.import_commands"
             ),
             version="1.0.0",
         )

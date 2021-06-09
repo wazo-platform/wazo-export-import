@@ -8,10 +8,11 @@ from .constants import RESOURCE_FIELDS
 
 
 class DumpFile:
-    def __init__(self, filename, fields=None):
+    def __init__(self, filename, fields=None, mode=None):
         self._filename = filename
         self._data = {}
         self._fields = deepcopy(fields or RESOURCE_FIELDS)
+        self._mode = mode
 
     def __enter__(self):
         try:
@@ -22,7 +23,8 @@ class DumpFile:
         return self
 
     def __exit__(self, type, value, traceback):
-        save_data(self._filename, self._data)
+        if self._mode == "r+w":
+            save_data(self._filename, self._data)
 
     def add_row(self, tab_name, row):
         columns = self._get_columns(tab_name)
@@ -35,6 +37,9 @@ class DumpFile:
             if self._row_matches(columns, row, pairs):
                 return i
         raise LookupError("No row matching {}".format(pairs))
+
+    def get_resources(self):
+        return deepcopy(self._data)
 
     def update_row(self, tab_name, i, row):
         columns = self._get_columns(tab_name)
@@ -64,7 +69,7 @@ class DumpFile:
     def _pre_fill_columns(self):
         for tab, column_definitions in self._fields.items():
             self._add_tab_if_missing(tab)
-            for column in column_definitions.keys():
+            for column in column_definitions["fields"].keys():
                 self._add_columns_to_tab_if_missing(tab, column)
 
     def _row_matches(self, columns, row, pairs):

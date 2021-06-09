@@ -1,8 +1,6 @@
 # Copyright 2021 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import pytest
-
 from ..ods import DumpFile
 
 
@@ -10,12 +8,16 @@ def test_pre_fill_columns_no_data():
     filename = "ignored in tests"
     fields = {
         "tab1": {
-            "col1": {},
-            "col2": {},
-            "col3": {},
+            "fields": {
+                "col1": {},
+                "col2": {},
+                "col3": {},
+            },
         },
         "tab2": {
-            "col1": {},
+            "fields": {
+                "col1": {},
+            },
         },
     }
     file = DumpFile(filename, fields)
@@ -32,9 +34,11 @@ def test_pre_fill_columns_empty_tabs():
     filename = "ignored in tests"
     fields = {
         "tab1": {
-            "col1": {},
-            "col2": {},
-            "col3": {},
+            "fields": {
+                "col1": {},
+                "col2": {},
+                "col3": {},
+            },
         },
     }
     file = DumpFile(filename, fields)
@@ -61,9 +65,11 @@ def test_find_matching_row():
     filename = "ignored in tests"
     fields = {
         "tab1": {
-            "col1": {},
-            "col2": {},
-            "col3": {},
+            "fields": {
+                "col1": {},
+                "col2": {},
+                "col3": {},
+            }
         },
     }
     file = DumpFile(filename, fields)
@@ -85,9 +91,11 @@ def test_add_row():
     filename = "ignored in tests"
     fields = {
         "tab1": {
-            "col1": {},
-            "col2": {},
-            "col3": {},
+            "fields": {
+                "col1": {},
+                "col2": {},
+                "col3": {},
+            },
         },
     }
     file = DumpFile(filename, fields)
@@ -108,9 +116,11 @@ def test_update_row():
     filename = "ignored in tests"
     fields = {
         "tab1": {
-            "col1": {},
-            "col2": {},
-            "col3": {},
+            "fields": {
+                "col1": {},
+                "col2": {},
+                "col3": {},
+            },
         },
     }
     file = DumpFile(filename, fields)

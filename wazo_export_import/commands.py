@@ -6,8 +6,39 @@ import sys
 
 from cliff import command
 
+from .helpers.importer import WazoAPI
 from .helpers.ods import DumpFile
 from .helpers.constants import RESOURCE_FIELDS
+from .helpers.import_set import ImportSet
+
+
+class Import(command.Command):
+    def get_parser(self, *args, **kwargs):
+        parser = super().get_parser(*args, **kwargs)
+        parser.add_argument("--username", required=True)
+        parser.add_argument("--password", required=True)
+        tenant_selector = parser.add_mutually_exclusive_group(required=True)
+        tenant_selector.add_argument("--tenant", dest="tenant_uuid")
+        tenant_selector.add_argument("--tenant-slug", dest="tenant_slug")
+        parser.add_argument(
+            "filename",
+            help="dump filename to read from",
+        )
+        return parser
+
+    def take_action(self, parsed_args):
+        with DumpFile(parsed_args.filename, mode="r") as dump_file:
+            import_set = ImportSet(dump_file.get_resources(), RESOURCE_FIELDS)
+
+        import_set.check_references()
+
+        tenant_args = {}
+        if parsed_args.tenant_uuid:
+            tenant_args["tenant_uuid"] = parsed_args.tenant_uuid
+        elif parsed_args.tenant_slug:
+            tenant_args["tenant_slug"] = parsed_args.tenant_slug
+        proxy = WazoAPI(parsed_args.username, parsed_args.password, **tenant_args)
+        proxy.import_all(import_set)
 
 
 class ListResources(command.Command):
@@ -29,7 +60,7 @@ class ListFields(command.Command):
         return parser
 
     def take_action(self, parsed_args):
-        return " ".join(RESOURCE_FIELDS[parsed_args.resource].keys())
+        return " ".join(RESOURCE_FIELDS[parsed_args.resource]["fields"].keys())
 
 
 class Add(command.Command):
@@ -52,7 +83,7 @@ class Add(command.Command):
     def take_action(self, parsed_args):
         reader = csv.DictReader(sys.stdin)
         first_row = True
-        with DumpFile(parsed_args.filename) as dump_file:
+        with DumpFile(parsed_args.filename, mode="r+w") as dump_file:
             for row in reader:
                 if first_row:
                     self._validate_columns(parsed_args.resource, row)
@@ -60,40 +91,31 @@ class Add(command.Command):
                 self._add_or_update_resource(dump_file, parsed_args.resource, row)
 
     def _validate_columns(self, resource, row):
-        known_columns = set(RESOURCE_FIELDS[resource].keys())
+        known_columns = set(RESOURCE_FIELDS[resource]["fields"].keys())
         user_supplied_columns = set(row.keys())
 
         unknown_columns = user_supplied_columns - known_columns
         if unknown_columns:
-            print(
-                'The following columns are invalid, check your columns using the "list fields --{}"'.format(
-                    resource
-                )
-            )
-            print("\t{}".format(",".join(unknown_columns)))
+            raise Exception("unknown columns {}".format(",".join(unknown_columns)))
 
     def _add_or_update_resource(self, dump_file, resource, row):
-        if resource == "ring_groups":
-            self._add_or_update_ring_group(dump_file, row)
-
-    def _add_or_update_ring_group(self, dump_file, row):
         try:
-            index = self._find_matching_group(dump_file, row)
-            dump_file.update_row("ring_groups", index, row)
+            index = self._find_matching_resource(dump_file, resource, row)
+            dump_file.update_row(resource, index, row)
         except LookupError:
-            dump_file.add_row("ring_groups", row)
+            dump_file.add_row(resource, row)
 
-    def _find_matching_group(self, dump_file, row):
-        selections = [("ref",), ("label",)]
+    def _find_matching_resource(self, dump_file, resource, row):
+        selections = RESOURCE_FIELDS[resource]["unique"]
         for unique_columns in selections:
             row_has_all_columns = set(row.keys()).issuperset(set(unique_columns))
             if row_has_all_columns:
                 pairs = [(key, row[key]) for key in unique_columns]
                 try:
-                    return dump_file.find_matching_row("ring_groups", pairs)
+                    return dump_file.find_matching_row(resource, pairs)
                 except LookupError:
                     continue
-        raise LookupError("No group matching")
+        raise LookupError("No resource matching")
 
 
 class New(command.Command):
@@ -106,6 +128,6 @@ class New(command.Command):
         return parser
 
     def take_action(self, parsed_args):
-        with DumpFile(parsed_args.filename):
+        with DumpFile(parsed_args.filename, mode="r+w"):
             # Dump creation side effect
             pass
