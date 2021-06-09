@@ -141,9 +141,6 @@ class WazoAPI:
 
             resource["existing_resource"] = matching_resource
 
-    def setup_relations(self):
-        pass
-
     def import_all(self, import_set):
         self.authenticate()
         self.set_tenant()
