@@ -6,7 +6,6 @@ import unittest
 from unittest.mock import Mock, sentinel as s
 
 from ..importer import WazoAPI
-from ..import_set import ImportSet
 
 
 class TestWazoAPI(unittest.TestCase):
