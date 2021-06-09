@@ -3,8 +3,15 @@ that can be used to populate a Wazo tenant.
 
 # Process
 
-The first step is to generate an import file using an existing configuration or generating an empty
-dump file and filling it manually.
+The first step is to generate an import file using an existing configuration or generating an empty dump file and filling it manually.
+
+The dump file can the be edited using a spread sheet application. The email field should be filled on users.
+
+A new tenant needs to be created before the import. The 3 common contexts, internal, from-extern and to-extern should be created with the appropriate number ranges.
+
+You can then install the phone provisioning plugins that are going to be used.
+
+Once the import has been completed phones will still have there old configuration files but Wazo will need to set the relation between lines and devices. This should be done using the provisioning code on the phones.
 
 
 # The Dump File
