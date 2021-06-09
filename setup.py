@@ -5,7 +5,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="wazo_export_import",
-    version="1.0",
+    version="1.0.0",
     description="Export/Import tool for Wazo",
     auth="Wazo Authors",
     author_email="dev@wazo.community",

@@ -11,5 +11,5 @@ class WazoImportDump(app.App):
             command_manager=commandmanager.CommandManager(
                 "wazo_export_import.import_commands"
             ),
-            version="0.0.1",
+            version="1.0.0",
         )
