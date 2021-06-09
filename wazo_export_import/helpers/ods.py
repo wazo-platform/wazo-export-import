@@ -8,10 +8,11 @@ from .constants import RESOURCE_FIELDS
 
 
 class DumpFile:
-    def __init__(self, filename, fields=None):
+    def __init__(self, filename, fields=None, mode=None):
         self._filename = filename
         self._data = {}
         self._fields = deepcopy(fields or RESOURCE_FIELDS)
+        self._mode = mode
 
     def __enter__(self):
         try:
@@ -22,7 +23,8 @@ class DumpFile:
         return self
 
     def __exit__(self, type, value, traceback):
-        save_data(self._filename, self._data)
+        if self._mode == "r+w":
+            save_data(self._filename, self._data)
 
     def add_row(self, tab_name, row):
         columns = self._get_columns(tab_name)

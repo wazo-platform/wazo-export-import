@@ -27,7 +27,7 @@ class Import(command.Command):
         return parser
 
     def take_action(self, parsed_args):
-        with DumpFile(parsed_args.filename) as dump_file:
+        with DumpFile(parsed_args.filename, mode="r") as dump_file:
             import_set = ImportSet(dump_file.get_resources(), RESOURCE_FIELDS)
 
         import_set.check_references()
@@ -83,7 +83,7 @@ class Add(command.Command):
     def take_action(self, parsed_args):
         reader = csv.DictReader(sys.stdin)
         first_row = True
-        with DumpFile(parsed_args.filename) as dump_file:
+        with DumpFile(parsed_args.filename, mode="r+w") as dump_file:
             for row in reader:
                 if first_row:
                     self._validate_columns(parsed_args.resource, row)
@@ -128,6 +128,6 @@ class New(command.Command):
         return parser
 
     def take_action(self, parsed_args):
-        with DumpFile(parsed_args.filename):
+        with DumpFile(parsed_args.filename, mode="r+w"):
             # Dump creation side effect
             pass
