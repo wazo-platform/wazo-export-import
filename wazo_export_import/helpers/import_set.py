@@ -3,7 +3,7 @@
 
 import logging
 
-from .exceptions import UnknownReferenceException
+from .exceptions import DuplicateReferenceException, UnknownReferenceException
 
 logger = logging.getLogger(__name__)
 
@@ -50,15 +50,22 @@ class ImportSet:
 
     def _build_references(self):
         logger.info("building references")
-        for type_, resources in self._resources.items():
+        for resources in self._resources.values():
             if not resources:
-                continue
-            if "ref" not in resources[0]:
-                continue
+                continue  # There's no resources for this type
+
+            headers = list(resources[0].keys())
+            if "ref" not in headers:
+                continue  # The resources in this list have no "ref" column
+
             for resource in resources:
                 reference = resource["ref"]
                 if not reference:
                     continue
+
+                if reference in self._referenced_resources:
+                    raise DuplicateReferenceException(reference)
+
                 self._referenced_resources[reference] = resource
         logger.debug("reference building done")
 
