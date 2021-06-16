@@ -215,4 +215,16 @@ RESOURCE_FIELDS = {
         ],
         "references": ["destination", "schedule"],
     },
+    "function_keys": {
+        "fields": {
+            "user": {},
+            "destination": {},
+            "position": {},
+            "label": {},
+            "blf": {},
+            "type": {},
+        },
+        "unique": [("user", "position")],
+        "references": ["user"],  # Not all destinations are references
+    },
 }
