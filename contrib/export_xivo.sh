@@ -43,7 +43,7 @@ LEFT JOIN func_key_dest_group ON func_key_mapping.func_key_id = func_key_dest_gr
 LEFT JOIN userfeatures user_dest ON func_key_dest_user.user_id = user_dest.id
 LEFT JOIN func_key_dest_custom ON func_key_mapping.func_key_id = func_key_dest_custom.func_key_id AND func_key_destination_type.name = 'custom'
 WHERE owner.entityid = ${ENTITY_ID}
-" | ${DUMP} add --fk "${OUTPUT}"
+" | ${DUMP} add --function_keys "${OUTPUT}"
 
 # Users
 echo "exporting users"

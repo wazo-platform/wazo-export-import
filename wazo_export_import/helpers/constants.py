@@ -215,7 +215,7 @@ RESOURCE_FIELDS = {
         ],
         "references": ["destination", "schedule"],
     },
-    "fk": {
+    "function_keys": {
         "fields": {
             "user": {},
             "destination": {},

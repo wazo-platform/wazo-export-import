@@ -190,7 +190,7 @@ class WazoAPI:
             extensions.append(extension)
         return extensions
 
-    def list_fk(self):
+    def list_function_keys(self):
         return []
 
     def list_group_members(self):
@@ -296,7 +296,7 @@ class WazoAPI:
                 raise
             self._confd_client.users(user["uuid"]).add_line(line)
 
-    def create_or_update_fk(self, body):
+    def create_or_update_function_keys(self, body):
         destination_ref = body.get("destination")
         if not destination_ref:
             logger.info("FK has no destination, skipping: %s", body)
