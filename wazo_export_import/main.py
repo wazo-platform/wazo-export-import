@@ -12,6 +12,9 @@ logging.basicConfig(
     format="%(asctime)s (%(levelname)s) (%(name)s): %(message)s",
 )
 
+logger = logging.getLogger("pyexcel_io")
+logger.setLevel(logging.ERROR)
+
 
 def dump(argv=None):
     argv = argv or sys.argv[1:]
