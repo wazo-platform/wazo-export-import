@@ -11,7 +11,7 @@ set -o pipefail  # fail if command before pipe fails
 DB_NAME="${DB_NAME:-asterisk}"
 DUMP="wazo-generate-dump"
 OUTPUT="export.ods"
-PSQL_OPTIONS="--csv"
+PSQL_OPTIONS="-A -F\",\""
 ENTITY_ID=1
 
 if [ -e "${OUTPUT}" ]; then
