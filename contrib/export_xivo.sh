@@ -11,6 +11,7 @@ set -o pipefail  # fail if command before pipe fails
 DB_NAME="${DB_NAME:-asterisk}"
 DUMP="wazo-generate-dump"
 OUTPUT="export.ods"
+PSQL_OPTIONS="--csv"
 ENTITY_ID=1
 
 if [ -e "${OUTPUT}" ]; then
@@ -22,7 +23,7 @@ echo "Exporting from DB ${DB_NAME}"
 
 # TODO This script should be limited to a single tenant.
 
-sudo -u postgres psql --csv "${DB_NAME}" -c " \
+sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 SELECT
   owner.uuid as user,
   func_key_mapping.label as label,
@@ -47,7 +48,7 @@ WHERE owner.entityid = ${ENTITY_ID}
 
 # Users
 echo "exporting users"
-sudo -u postgres psql --csv "${DB_NAME}" -c " \
+sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 SELECT \
   uuid as ref, \
   rightcallcode as call_permission_password, \
@@ -94,7 +95,7 @@ WHERE entityid = ${ENTITY_ID} AND loginclient != 'xuc'" | ${DUMP} add --users "$
 
 # The following 4 queries only handle voicemail ref in the case
 echo "exporting users fallbacks"
-sudo -u postgres psql --csv "${DB_NAME}" -c " \
+sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 SELECT \
   userfeatures.uuid as ref, \
   CASE \
@@ -111,7 +112,7 @@ WHERE \
   AND event = 'noanswer' \
   AND userfeatures.entityid = ${ENTITY_ID}" | ${DUMP} add --users "${OUTPUT}"
 
-sudo -u postgres psql --csv "${DB_NAME}" -c " \
+sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 SELECT \
   userfeatures.uuid as ref, \
   CASE \
@@ -129,7 +130,7 @@ WHERE \
   AND event = 'busy' \
   AND userfeatures.entityid = ${ENTITY_ID}" | ${DUMP} add --users "${OUTPUT}"
 
-sudo -u postgres psql --csv "${DB_NAME}" -c " \
+sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 SELECT \
   userfeatures.uuid as ref, \
   CASE \
@@ -145,7 +146,7 @@ WHERE category = 'user' \
   AND event = 'congestion' \
   AND userfeatures.entityid = ${ENTITY_ID}" | ${DUMP} add --users "${OUTPUT}"
 
-sudo -u postgres psql --csv "${DB_NAME}" -c " \
+sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 SELECT \
   userfeatures.uuid as ref, \
   CASE \
@@ -162,7 +163,7 @@ WHERE category = 'user' \
   AND userfeatures.entityid = ${ENTITY_ID}" | ${DUMP} add --users "${OUTPUT}"
 
 echo "exporting lines"
-sudo -u postgres psql --csv "${DB_NAME}" -c " \
+sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 SELECT
   concat('line-', linefeatures.id) as ref,
   linefeatures.protocol as type,
@@ -180,7 +181,7 @@ WHERE userfeatures.entityid = ${ENTITY_ID}
 
 # Ring groups
 echo "exporting ring groups"
-sudo -u postgres psql --csv "${DB_NAME}" -c " \
+sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 SELECT \
   concat('grp-', groupfeatures.id) as ref, \
   groupfeatures.name as label, \
@@ -217,7 +218,7 @@ WHERE category = 'group' AND entity.id = ${ENTITY_ID}" | ${DUMP} add --ring_grou
 
 echo "exporting ring group members"
 # User members
-sudo -u postgres psql --csv "${DB_NAME}" -c " \
+sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 SELECT \
   concat('grp-', groupfeatures.id) AS group, \
   userfeatures.uuid AS user,
@@ -230,7 +231,7 @@ WHERE userfeatures.entityid = ${ENTITY_ID}" | ${DUMP} add --group_members "${OUT
 
 # Voicemails
 echo "exporting voicemails"
-sudo -u postgres psql --csv "${DB_NAME}" -c "
+sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c "
 SELECT
   concat('vm-', voicemail.uniqueid) as ref,
   fullname as name,
@@ -255,7 +256,7 @@ JOIN entity ON entity.name = context.entity WHERE entity.id = ${ENTITY_ID}" \
 
 # Incalls
 echo "exporting incoming calls"
-sudo -u postgres psql --csv "${DB_NAME}" -c " \
+sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 SELECT
   concat('incall-', incall.id) as ref,
   concat(incall.exten, '@', incall.context) as extension,
@@ -286,7 +287,7 @@ WHERE entity.id = '1' and incall.commented = '0';" | ${DUMP} add --incalls "${OU
 
 # Schedules
 echo "exporting schedules"
-sudo -u postgres psql  --csv "${DB_NAME}" -c " \
+sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 SELECT
   concat('sched-', schedule.id) as ref,
   schedule.name,
@@ -309,7 +310,7 @@ FROM schedule
 LEFT JOIN userfeatures ON schedule.fallback_action = 'user' AND schedule.fallback_actionid = cast(userfeatures.id as varchar)
 WHERE entity_id = '1' AND fallback_action IS NOT null" | ${DUMP} add --schedules "${OUTPUT}"
 
-sudo -u postgres psql --csv "${DB_NAME}" -c " \
+sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 SELECT \
   concat('sched-', schedule_id) as schedule, \
   mode, \
@@ -335,7 +336,7 @@ WHERE schedule.entity_id = '1'
 
 # Contexts
 echo "exporting contexts"
-sudo -u postgres psql --csv "${DB_NAME}" -c " \
+sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 SELECT \
    context.name as ref,
    context.name,
@@ -347,7 +348,7 @@ WHERE entity.id = '1' AND context.name != '__switchboard_directory'
 " | ${DUMP} add --contexts "${OUTPUT}"
 
 echo "exporting extensions"
-sudo -u postgres psql --csv "${DB_NAME}" -c " \
+sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 SELECT
   concat(extensions.exten, '@', extensions.context) as ref,
   extensions.context,
@@ -365,7 +366,7 @@ JOIN entity ON entity.name = context.entity
 WHERE entity.id = '1'
 " | ${DUMP} add --extensions "${OUTPUT}"
 
-sudo -u postgres psql --csv "${DB_NAME}" -c " \
+sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 SELECT
   concat(dialaction.actionarg1, '@', dialaction.actionarg2) as ref,
   dialaction.actionarg1 as exten,
@@ -376,7 +377,7 @@ JOIN entity ON entity.name = context.entity
 WHERE entity.id = '1' AND dialaction.linked = '1' AND dialaction.action = 'extension'
 " | ${DUMP} add --extensions "${OUTPUT}"
 
-sudo -u postgres psql --csv "${DB_NAME}" -c " \
+sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 SELECT
   concat(schedule_time.actionid, '@', schedule_time.actionargs) as ref,
   schedule_time.actionid as exten,
