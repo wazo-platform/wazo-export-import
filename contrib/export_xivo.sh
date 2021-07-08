@@ -24,6 +24,7 @@ echo "Exporting from DB ${DB_NAME}"
 # TODO This script should be limited to a single tenant.
 
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
+COPY(
 SELECT
   owner.uuid as user,
   func_key_mapping.label as label,
@@ -43,12 +44,13 @@ LEFT JOIN func_key_dest_user ON func_key_mapping.func_key_id = func_key_dest_use
 LEFT JOIN func_key_dest_group ON func_key_mapping.func_key_id = func_key_dest_group.func_key_id AND func_key_destination_type.name = 'group'
 LEFT JOIN userfeatures user_dest ON func_key_dest_user.user_id = user_dest.id
 LEFT JOIN func_key_dest_custom ON func_key_mapping.func_key_id = func_key_dest_custom.func_key_id AND func_key_destination_type.name = 'custom'
-WHERE owner.entityid = ${ENTITY_ID}
+WHERE owner.entityid = ${ENTITY_ID}) TO STDOUT WITH CSV HEADER
 " | ${DUMP} add --function_keys "${OUTPUT}"
 
 # Users
 echo "exporting users"
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
+COPY (
 SELECT \
   uuid as ref, \
   rightcallcode as call_permission_password, \
@@ -91,11 +93,13 @@ SELECT \
   END as schedule \
 FROM userfeatures \
 LEFT JOIN schedule_path ON schedule_path.pathid = userfeatures.id AND schedule_path.path = 'user'
-WHERE entityid = ${ENTITY_ID} AND loginclient != 'xuc'" | ${DUMP} add --users "${OUTPUT}"
+WHERE entityid = ${ENTITY_ID} AND loginclient != 'xuc') TO STDOUT WITH CSV HEADER
+" | ${DUMP} add --users "${OUTPUT}"
 
 # The following 4 queries only handle voicemail ref in the case
 echo "exporting users fallbacks"
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
+COPY (
 SELECT \
   userfeatures.uuid as ref, \
   CASE \
@@ -110,9 +114,10 @@ WHERE \
   AND action != 'none' \
   AND linked = '1' \
   AND event = 'noanswer' \
-  AND userfeatures.entityid = ${ENTITY_ID}" | ${DUMP} add --users "${OUTPUT}"
+  AND userfeatures.entityid = ${ENTITY_ID}) TO STDOUT WITH CSV HEADER" | ${DUMP} add --users "${OUTPUT}"
 
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
+COPY (
 SELECT \
   userfeatures.uuid as ref, \
   CASE \
@@ -128,9 +133,10 @@ WHERE \
   AND action  != 'none' \
   AND linked = '1' \
   AND event = 'busy' \
-  AND userfeatures.entityid = ${ENTITY_ID}" | ${DUMP} add --users "${OUTPUT}"
+  AND userfeatures.entityid = ${ENTITY_ID}) TO STDOUT WITH CSV HEADER" | ${DUMP} add --users "${OUTPUT}"
 
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
+COPY (
 SELECT \
   userfeatures.uuid as ref, \
   CASE \
@@ -144,9 +150,10 @@ WHERE category = 'user' \
   AND action  != 'none' \
   AND linked = '1' \
   AND event = 'congestion' \
-  AND userfeatures.entityid = ${ENTITY_ID}" | ${DUMP} add --users "${OUTPUT}"
+  AND userfeatures.entityid = ${ENTITY_ID}) TO STDOUT WITH CSV HEADER" | ${DUMP} add --users "${OUTPUT}"
 
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
+COPY (
 SELECT \
   userfeatures.uuid as ref, \
   CASE \
@@ -160,10 +167,11 @@ WHERE category = 'user' \
   AND action != 'none' \
   AND linked = '1' \
   AND event = 'chanunavail' \
-  AND userfeatures.entityid = ${ENTITY_ID}" | ${DUMP} add --users "${OUTPUT}"
+  AND userfeatures.entityid = ${ENTITY_ID}) TO STDOUT WITH CSV HEADER" | ${DUMP} add --users "${OUTPUT}"
 
 echo "exporting lines"
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
+COPY (
 SELECT
   concat('line-', linefeatures.id) as ref,
   linefeatures.protocol as type,
@@ -176,12 +184,13 @@ JOIN user_line ON linefeatures.id = user_line.line_id
 JOIN userfeatures ON userfeatures.id = user_line.user_id
 JOIN usersip ON usersip.id = linefeatures.protocolid AND usersip.category = 'user'
 WHERE userfeatures.entityid = ${ENTITY_ID}
-  AND linefeatures.protocol = 'sip'
+  AND linefeatures.protocol = 'sip') TO STDOUT WITH CSV HEADER
 " | ${DUMP} add --lines "${OUTPUT}"
 
 # Ring groups
 echo "exporting ring groups"
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
+COPY (
 SELECT \
   concat('grp-', groupfeatures.id) as ref, \
   groupfeatures.name as label, \
@@ -214,11 +223,12 @@ JOIN context ON groupfeatures.context = context.name \
 JOIN entity ON entity.name = context.entity \
 LEFT JOIN callerid ON cast(callerid.typeval as int) = groupfeatures.id AND callerid.type = 'group'
 LEFT JOIN schedule_path ON schedule_path.pathid = groupfeatures.id AND schedule_path.path = 'group'
-WHERE category = 'group' AND entity.id = ${ENTITY_ID}" | ${DUMP} add --ring_groups "${OUTPUT}"
+WHERE category = 'group' AND entity.id = ${ENTITY_ID}) TO STDOUT WITH CSV HEADER" | ${DUMP} add --ring_groups "${OUTPUT}"
 
 echo "exporting ring group members"
 # User members
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
+COPY (
 SELECT \
   concat('grp-', groupfeatures.id) AS group, \
   userfeatures.uuid AS user,
@@ -226,12 +236,13 @@ SELECT \
 FROM queuemember \
 JOIN groupfeatures ON queuemember.queue_name = groupfeatures.name AND queuemember.category = 'group' \
 JOIN userfeatures ON queuemember.usertype = 'user' AND queuemember.userid = userfeatures.id
-WHERE userfeatures.entityid = ${ENTITY_ID}" | ${DUMP} add --group_members "${OUTPUT}"
+WHERE userfeatures.entityid = ${ENTITY_ID}) TO STDOUT WITH CSV HEADER" | ${DUMP} add --group_members "${OUTPUT}"
 # Extension members are not handled
 
 # Voicemails
 echo "exporting voicemails"
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c "
+COPY (
 SELECT
   concat('vm-', voicemail.uniqueid) as ref,
   fullname as name,
@@ -250,13 +261,14 @@ SELECT
   tz as timezone
 FROM voicemail
 JOIN context ON context.name = voicemail.context
-JOIN entity ON entity.name = context.entity WHERE entity.id = ${ENTITY_ID}" \
+JOIN entity ON entity.name = context.entity WHERE entity.id = ${ENTITY_ID}) TO STDOUT WITH CSV HEADER" \
 | sed 's/{/[/g' | sed 's/}/]/g' \
 | ${DUMP} add --voicemails "${OUTPUT}"
 
 # Incalls
 echo "exporting incoming calls"
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
+COPY (
 SELECT
   concat('incall-', incall.id) as ref,
   concat(incall.exten, '@', incall.context) as extension,
@@ -282,12 +294,13 @@ JOIN dialaction ON dialaction.category = 'incall' AND cast(dialaction.categoryva
 LEFT JOIN callerid ON cast(callerid.typeval as int) = incall.id AND callerid.type = 'incall'
 LEFT JOIN userfeatures ON dialaction.action = 'user' AND dialaction.actionarg1 = cast(userfeatures.id as varchar)
 LEFT JOIN schedule_path ON schedule_path.pathid = incall.id AND schedule_path.path = 'incall'
-WHERE entity.id = '1' and incall.commented = '0';" | ${DUMP} add --incalls "${OUTPUT}"
+WHERE entity.id = '1' and incall.commented = '0') TO STDOUT WITH CSV HEADER" | ${DUMP} add --incalls "${OUTPUT}"
 
 
 # Schedules
 echo "exporting schedules"
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
+COPY (
 SELECT
   concat('sched-', schedule.id) as ref,
   schedule.name,
@@ -308,9 +321,10 @@ SELECT
   END as closed_destination_options
 FROM schedule
 LEFT JOIN userfeatures ON schedule.fallback_action = 'user' AND schedule.fallback_actionid = cast(userfeatures.id as varchar)
-WHERE entity_id = '1' AND fallback_action IS NOT null" | ${DUMP} add --schedules "${OUTPUT}"
+WHERE entity_id = '1' AND fallback_action IS NOT null) TO STDOUT WITH CSV HEADER" | ${DUMP} add --schedules "${OUTPUT}"
 
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
+COPY (
 SELECT \
   concat('sched-', schedule_id) as schedule, \
   mode, \
@@ -331,12 +345,13 @@ SELECT \
   END as destination_options \
 FROM schedule_time \
 JOIN schedule ON schedule.id = schedule_time.schedule_id \
-WHERE schedule.entity_id = '1'
+WHERE schedule.entity_id = '1') TO STDOUT WITH CSV HEADER
 " | ${DUMP} add --schedule_times "${OUTPUT}"
 
 # Contexts
 echo "exporting contexts"
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
+COPY (
 SELECT \
    context.name as ref,
    context.name,
@@ -344,11 +359,12 @@ SELECT \
    context.contexttype as type
 FROM context
 JOIN entity ON context.entity = entity.name
-WHERE entity.id = '1' AND context.name != '__switchboard_directory'
+WHERE entity.id = '1' AND context.name != '__switchboard_directory') TO STDOUT WITH CSV HEADER
 " | ${DUMP} add --contexts "${OUTPUT}"
 
 echo "exporting extensions"
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
+COPY (
 SELECT
   concat(extensions.exten, '@', extensions.context) as ref,
   extensions.context,
@@ -363,10 +379,11 @@ LEFT JOIN userfeatures ON userfeatures.id = cast(extensions.typeval as int) AND 
 LEFT JOIN user_line ON user_line.user_id = userfeatures.id
 JOIN context ON extensions.context = context.name
 JOIN entity ON entity.name = context.entity
-WHERE entity.id = '1'
+WHERE entity.id = '1') TO STDOUT WITH CSV HEADER
 " | ${DUMP} add --extensions "${OUTPUT}"
 
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
+COPY (
 SELECT
   concat(dialaction.actionarg1, '@', dialaction.actionarg2) as ref,
   dialaction.actionarg1 as exten,
@@ -374,10 +391,11 @@ SELECT
 FROM dialaction
 JOIN context ON dialaction.actionarg2 = context.name
 JOIN entity ON entity.name = context.entity
-WHERE entity.id = '1' AND dialaction.linked = '1' AND dialaction.action = 'extension'
+WHERE entity.id = '1' AND dialaction.linked = '1' AND dialaction.action = 'extension') TO STDOUT WITH CSV HEADER
 " | ${DUMP} add --extensions "${OUTPUT}"
 
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
+COPY (
 SELECT
   concat(schedule_time.actionid, '@', schedule_time.actionargs) as ref,
   schedule_time.actionid as exten,
@@ -385,5 +403,5 @@ SELECT
 FROM schedule_time
 JOIN context ON schedule_time.actionargs = context.name
 JOIN entity ON entity.name = context.entity
-WHERE entity.id = '1' AND schedule_time.commented = '0' AND schedule_time.action = 'extension'
+WHERE entity.id = '1' AND schedule_time.commented = '0' AND schedule_time.action = 'extension') TO STDOUT WITH CSV HEADER
 " | ${DUMP} add --extensions "${OUTPUT}"
