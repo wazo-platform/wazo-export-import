@@ -28,8 +28,8 @@ class TestWazoAPI(unittest.TestCase):
 
         api.set_tenant()
 
-        api._auth_client.set_tenant.assert_called_once_with(s.tenant)
-        api._confd_client.set_tenant.assert_called_once_with(s.tenant)
+        assert api._auth_client.tenant_uuid == s.tenant
+        assert api._confd_client.tenant_uuid == s.tenant
 
     def test_set_tenant_with_new_tenant(self):
         api = WazoAPI(s.username, s.password, tenant_slug=s.tenant_slug)
@@ -40,10 +40,10 @@ class TestWazoAPI(unittest.TestCase):
 
         api.set_tenant()
 
-        api._auth_client.set_tenant.assert_called_once_with(s.tenant_uuid)
-        api._confd_client.set_tenant.assert_called_once_with(s.tenant_uuid)
         api._auth_client.tenants.new.assert_called_once_with(
             name=s.tenant_slug,
             slug=s.tenant_slug,
         )
+        assert api._auth_client.tenant_uuid == s.tenant_uuid
+        assert api._confd_client.tenant_uuid == s.tenant_uuid
         assert api._tenant_uuid == s.tenant_uuid
