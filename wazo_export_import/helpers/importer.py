@@ -172,8 +172,8 @@ class WazoAPI:
                     print("tenant slug already used")
                 raise
 
-        self._auth_client.set_tenant(self._tenant_uuid)
-        self._confd_client.set_tenant(self._tenant_uuid)
+        self._auth_client.tenant_uuid = self._tenant_uuid
+        self._confd_client.tenant_uuid = self._tenant_uuid
 
     def list_contexts(self):
         return self._confd_client.contexts.list()["items"]
