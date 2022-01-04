@@ -28,7 +28,7 @@ echo "Exporting from DB ${DB_NAME}"
 # Create a uuid user column
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
-ALTER TABLE userfeatures DROP COLUMN uuid;
+ALTER TABLE userfeatures DROP COLUMN IF EXISTS uuid;
 ALTER TABLE userfeatures ADD uuid uuid DEFAULT uuid_generate_v4();
 "
 
