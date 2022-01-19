@@ -44,7 +44,7 @@ def _load_key_file(config):
 
 
 def _wait_for_provd(provd_config):
-    url = 'https://{host}:{port}/configure'.format(**provd_config)
+    url = 'http://{host}:{port}/configure'.format(**provd_config)
     for _ in range(30):
         try:
             requests.get(url, verify=False)
