@@ -60,7 +60,7 @@ def _migrate_device(device_id, tenant_uuid):
     device_path = os.path.join(PROVD_JSONDB_DEVICES_DIR, device_id)
     with open(device_path, 'r+') as file_:
         device = json.load(file_)
-        device['tenant_uuid'] = tenant_uuid
+        device['tenant_uuid'] = args.tenant
         file_.seek(0)
         json.dump(device, file_)
         file_.truncate()
@@ -115,6 +115,10 @@ def main():
         if version_installed >= '19.04':
             sys.exit(0)
 
+    if not args.tenant:
+        print('Tenant uuid is mandatory. Ending !')
+        sys.exit(0)
+
     sentinel_file = '/var/lib/wazo-upgrade/55_provd_device_tenant_migration'
     if os.path.exists(sentinel_file):
         # migration already done
@@ -133,6 +137,10 @@ def parse_args():
         '--force',
         action='store_true',
         help="Do not check the variable XIVO_VERSION_INSTALLED. Default: %(default)s",
+    )
+    parser.add_argument(
+        'tenant',
+        help="Define the tenant uuid",
     )
     return parser.parse_args()
 
