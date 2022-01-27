@@ -60,13 +60,13 @@ def _migrate_device(device_id, tenant_uuid):
     device_path = os.path.join(PROVD_JSONDB_DEVICES_DIR, device_id)
     with open(device_path, 'r+') as file_:
         device = json.load(file_)
-        device['tenant_uuid'] = args.tenant
+        device['tenant_uuid'] = tenant_uuid
         file_.seek(0)
         json.dump(device, file_)
         file_.truncate()
 
 
-def migrate_tenants():
+def migrate_tenants(tenant):
     config = _load_config()
     _wait_for_provd(config['provd'])
 
@@ -85,7 +85,7 @@ def migrate_tenants():
 
         if device_id and device_id not in devices_migrated:
             try:
-                _migrate_device(device_id, line['tenant_uuid'])
+                _migrate_device(device_id, tenant)
             except json.JSONDecodeError:
                 print(device_id, 'is not a valid JSON file. Skipping.')
                 continue
@@ -124,7 +124,7 @@ def main():
         # migration already done
         sys.exit(1)
 
-    migrate_tenants()
+    migrate_tenants(args.tenant)
 
     with open(sentinel_file, 'w'):
         pass
