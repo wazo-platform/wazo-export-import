@@ -82,10 +82,12 @@ def migrate_tenants(tenant):
     lines = confd.lines.list(recurse=True)['items']
     for line in lines:
         device_id = line['device_id']
+        print('device: ', device_id)
 
         if device_id and device_id not in devices_migrated:
             try:
                 _migrate_device(device_id, tenant)
+                print('Migrating {} with tenant {}'.format(device_id, tenant))
             except json.JSONDecodeError:
                 print(device_id, 'is not a valid JSON file. Skipping.')
                 continue
@@ -124,6 +126,8 @@ def main():
         # migration already done
         sys.exit(1)
 
+    print('arg', vars(args))
+
     migrate_tenants(args.tenant)
 
     with open(sentinel_file, 'w'):
@@ -139,7 +143,8 @@ def parse_args():
         help="Do not check the variable XIVO_VERSION_INSTALLED. Default: %(default)s",
     )
     parser.add_argument(
-        'tenant',
+        '-t',
+        '--tenant',
         help="Define the tenant uuid",
     )
     return parser.parse_args()
