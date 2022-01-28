@@ -101,7 +101,8 @@ def migrate_tenants(tenant):
         device_id = dir_entry.name
         if device_id not in devices_migrated:
             try:
-                _migrate_device(device_id, master_tenant_uuid)
+                _migrate_device(device_id, tenant)
+                print('Migrating {} with tenant {}'.format(device_id, tenant))
             except json.JSONDecodeError:
                 print(device_id, 'is not a valid JSON file. Skipping.')
                 continue
