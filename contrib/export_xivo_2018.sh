@@ -178,7 +178,8 @@ SELECT
   linefeatures.context,
   userfeatures.uuid as user,
   usersip.name,
-  usersip.secret as password
+  usersip.secret as password,
+  linefeatures.device as device
 FROM linefeatures
 JOIN user_line ON linefeatures.id = user_line.line_id
 JOIN userfeatures ON userfeatures.id = user_line.user_id
