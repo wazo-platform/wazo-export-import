@@ -82,6 +82,7 @@ RESOURCE_FIELDS = {
             "context": {},
             "name": {},
             "password": {},
+            "device": {},
         },
         "unique": [
             ("ref",),
