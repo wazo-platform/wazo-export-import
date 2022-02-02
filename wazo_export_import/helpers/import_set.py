@@ -45,6 +45,7 @@ class ImportSet:
                 resource["type_"] = type_
                 if type_ not in self._resources:
                     self._resources[type_] = []
+                logger.debug("resource built : %s", resource)
                 self._resources[type_].append(resource)
         logger.debug("resource building done")
 
@@ -62,7 +63,7 @@ class ImportSet:
                 reference = resource["ref"]
                 if not reference:
                     continue
-
+                logger.debug("reference built : %s", reference)
                 if reference in self._referenced_resources:
                     raise DuplicateReferenceException(reference)
 

@@ -387,6 +387,9 @@ class WazoAPI:
         body["existing_resource"] = line
         self._confd_client.lines(line["id"]).add_endpoint_sip(endpoint_sip)
 
+        # Associate line and device
+        self._confd_client.lines(line["id"]).add_device(body["device"])
+
     def create_or_update_group_members(self, body):
         group_ref = body["group"]
         user_ref = body["user"]
