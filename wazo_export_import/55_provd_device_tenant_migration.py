@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2019-2022 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import argparse
@@ -61,6 +61,7 @@ def _migrate_device(device_id, tenant_uuid):
     with open(device_path, 'r+') as file_:
         device = json.load(file_)
         device['tenant_uuid'] = tenant_uuid
+        device['is_new'] = False
         file_.seek(0)
         json.dump(device, file_)
         file_.truncate()
