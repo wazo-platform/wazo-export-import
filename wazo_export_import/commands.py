@@ -1,4 +1,4 @@
-# Copyright 2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2021-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import csv
@@ -52,7 +52,7 @@ class ListFields(command.Command):
         relation = parser.add_mutually_exclusive_group(required=True)
         for resource in RESOURCE_FIELDS.keys():
             relation.add_argument(
-                "--{}".format(resource),
+                f"--{resource}",
                 dest="resource",
                 action="store_const",
                 const=resource,
@@ -69,7 +69,7 @@ class Add(command.Command):
         relation = parser.add_mutually_exclusive_group(required=True)
         for resource in RESOURCE_FIELDS.keys():
             relation.add_argument(
-                "--{}".format(resource),
+                f"--{resource}",
                 dest="resource",
                 action="store_const",
                 const=resource,
@@ -96,7 +96,7 @@ class Add(command.Command):
 
         unknown_columns = user_supplied_columns - known_columns
         if unknown_columns:
-            raise Exception("unknown columns {}".format(",".join(unknown_columns)))
+            raise Exception(f"unknown columns {','.join(unknown_columns)}")
 
     def _add_or_update_resource(self, dump_file, resource, row):
         try:

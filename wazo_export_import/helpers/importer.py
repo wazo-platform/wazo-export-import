@@ -1,4 +1,4 @@
-# Copyright 2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2021-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import logging
@@ -204,10 +204,9 @@ class WazoAPI:
         incalls = []
         for incall in self._confd_client.incalls.list()["items"]:
             for extension in incall["extensions"]:
-                incall["extension"] = "{exten}@{context}".format(
-                    exten=extension["exten"],
-                    context=context_map[extension["context"]],
-                )
+                incall[
+                    "extension"
+                ] = f"{extension['exten']}@{context_map[extension['context']]}"
                 continue
             incalls.append(incall)
 
@@ -335,9 +334,7 @@ class WazoAPI:
         extension = self._import_set.get_resource(confd_body["extension"])
         if not extension:
             raise Exception(
-                "Failed to create incall with extension {}".format(
-                    confd_body["extension"]
-                )
+                f"Failed to create incall with extension {confd_body['extension']}"
             )
         self._confd_client.incalls(incall).add_extension(extension["existing_resource"])
         body["existing_resource"] = incall

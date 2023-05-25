@@ -1,4 +1,4 @@
-# Copyright 2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2021-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import pytest
@@ -21,7 +21,7 @@ def test_check_references_no_missing_references():
     try:
         import_set.check_references()
     except Exception as e:
-        pytest.fail("unexpected exception: {}".format(e))
+        pytest.fail(f"unexpected exception: {e}")
 
 
 def test_check_references_with_missing_references():
@@ -46,7 +46,7 @@ def test_check_references_row_shorter_that_headers():
     try:
         import_set.check_references()
     except Exception as e:
-        pytest.fail("unexpected exception: {}".format(e))
+        pytest.fail(f"unexpected exception: {e}")
 
 
 def test_check_references_ignore_sound():
@@ -59,4 +59,4 @@ def test_check_references_ignore_sound():
     try:
         import_set.check_references()
     except Exception as e:
-        pytest.fail("unexpected exception: {}".format(e))
+        pytest.fail(f"unexpected exception: {e}")

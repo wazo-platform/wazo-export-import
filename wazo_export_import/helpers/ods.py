@@ -1,4 +1,4 @@
-# Copyright 2021 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2021-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from copy import deepcopy
@@ -36,7 +36,7 @@ class DumpFile:
         for i, row in enumerate(self._data[tab_name][1:], start=1):
             if self._row_matches(columns, row, pairs):
                 return i
-        raise LookupError("No row matching {}".format(pairs))
+        raise LookupError(f"No row matching {pairs}")
 
     def get_resources(self):
         return deepcopy(self._data)
