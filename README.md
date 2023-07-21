@@ -1,6 +1,22 @@
 wazo-export-import is a collection of tools to allow an administrator to generate a dump file
 that can be used to populate a Wazo tenant.
 
+# Installation
+
+```shell
+apt install python3-pip
+pip3 install -r requirements.txt
+python3 setup.py install
+```
+
+On Wazo Platform <= 23.05 (Debian 10 Buster):
+
+```shell
+apt install python3-pip
+pip3 install -r <(sed s/master/wazo-23.05/ requirements.txt)
+python3 setup.py install
+```
+
 # Process
 
 The first step is to generate an import file using an existing configuration or generating an empty dump file and filling it manually.
