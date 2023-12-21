@@ -3,8 +3,8 @@
 
 import pytest
 
-from ..import_set import ImportSet
 from ..exceptions import UnknownReferenceException
+from ..import_set import ImportSet
 
 data_definition = {
     "tab2": {

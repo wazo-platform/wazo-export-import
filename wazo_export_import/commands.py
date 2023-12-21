@@ -6,10 +6,10 @@ import sys
 
 from cliff import command
 
-from .helpers.importer import WazoAPI
-from .helpers.ods import DumpFile
 from .helpers.constants import RESOURCE_FIELDS
 from .helpers.import_set import ImportSet
+from .helpers.importer import WazoAPI
+from .helpers.ods import DumpFile
 
 
 class Import(command.Command):
