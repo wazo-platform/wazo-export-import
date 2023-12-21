@@ -1,17 +1,16 @@
 # Copyright 2021-2023 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import logging
 import json
+import logging
 import re
 
 from requests import HTTPError
-
 from wazo_auth_client import Client as AuthClient
 from wazo_confd_client import Client as ConfdClient
 
 from .constants import RESOURCE_FIELDS
-from .schedules import hours_start, hours_end, expand_range
+from .schedules import expand_range, hours_end, hours_start
 
 logger = logging.getLogger(__name__)
 

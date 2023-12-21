@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from copy import deepcopy
+
 from pyexcel_ods import get_data, save_data
 
 from .constants import RESOURCE_FIELDS
