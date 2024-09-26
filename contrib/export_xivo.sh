@@ -294,7 +294,7 @@ JOIN dialaction ON dialaction.category = 'incall' AND cast(dialaction.categoryva
 LEFT JOIN callerid ON cast(callerid.typeval as int) = incall.id AND callerid.type = 'incall'
 LEFT JOIN userfeatures ON dialaction.action = 'user' AND dialaction.actionarg1 = cast(userfeatures.id as varchar)
 LEFT JOIN schedule_path ON schedule_path.pathid = incall.id AND schedule_path.path = 'incall'
-WHERE entity.id = '1' and incall.commented = '0') TO STDOUT WITH CSV HEADER" | ${DUMP} add --incalls "${OUTPUT}"
+WHERE entity.id = ${ENTITY_ID} and incall.commented = '0') TO STDOUT WITH CSV HEADER" | ${DUMP} add --incalls "${OUTPUT}"
 
 
 # Schedules
@@ -321,7 +321,7 @@ SELECT
   END as closed_destination_options
 FROM schedule
 LEFT JOIN userfeatures ON schedule.fallback_action = 'user' AND schedule.fallback_actionid = cast(userfeatures.id as varchar)
-WHERE entity_id = '1' AND fallback_action IS NOT null) TO STDOUT WITH CSV HEADER" | ${DUMP} add --schedules "${OUTPUT}"
+WHERE entity_id = ${ENTITY_ID} AND fallback_action IS NOT null) TO STDOUT WITH CSV HEADER" | ${DUMP} add --schedules "${OUTPUT}"
 
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
 COPY (
@@ -345,7 +345,7 @@ SELECT \
   END as destination_options \
 FROM schedule_time \
 JOIN schedule ON schedule.id = schedule_time.schedule_id \
-WHERE schedule.entity_id = '1') TO STDOUT WITH CSV HEADER
+WHERE schedule.entity_id = ${ENTITY_ID}) TO STDOUT WITH CSV HEADER
 " | ${DUMP} add --schedule_times "${OUTPUT}"
 
 # Contexts
@@ -359,7 +359,7 @@ SELECT \
    context.contexttype as type
 FROM context
 JOIN entity ON context.entity = entity.name
-WHERE entity.id = '1' AND context.name != '__switchboard_directory') TO STDOUT WITH CSV HEADER
+WHERE entity.id = ${ENTITY_ID} AND context.name != '__switchboard_directory') TO STDOUT WITH CSV HEADER
 " | ${DUMP} add --contexts "${OUTPUT}"
 
 echo "exporting extensions"
@@ -379,7 +379,7 @@ LEFT JOIN userfeatures ON userfeatures.id = cast(extensions.typeval as int) AND 
 LEFT JOIN user_line ON user_line.user_id = userfeatures.id
 JOIN context ON extensions.context = context.name
 JOIN entity ON entity.name = context.entity
-WHERE entity.id = '1') TO STDOUT WITH CSV HEADER
+WHERE entity.id = ${ENTITY_ID}) TO STDOUT WITH CSV HEADER
 " | ${DUMP} add --extensions "${OUTPUT}"
 
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
@@ -391,7 +391,7 @@ SELECT
 FROM dialaction
 JOIN context ON dialaction.actionarg2 = context.name
 JOIN entity ON entity.name = context.entity
-WHERE entity.id = '1' AND dialaction.linked = '1' AND dialaction.action = 'extension') TO STDOUT WITH CSV HEADER
+WHERE entity.id = ${ENTITY_ID} AND dialaction.linked = '1' AND dialaction.action = 'extension') TO STDOUT WITH CSV HEADER
 " | ${DUMP} add --extensions "${OUTPUT}"
 
 sudo -u postgres psql ${PSQL_OPTIONS} "${DB_NAME}" -c " \
@@ -403,5 +403,5 @@ SELECT
 FROM schedule_time
 JOIN context ON schedule_time.actionargs = context.name
 JOIN entity ON entity.name = context.entity
-WHERE entity.id = '1' AND schedule_time.commented = '0' AND schedule_time.action = 'extension') TO STDOUT WITH CSV HEADER
+WHERE entity.id = ${ENTITY_ID} AND schedule_time.commented = '0' AND schedule_time.action = 'extension') TO STDOUT WITH CSV HEADER
 " | ${DUMP} add --extensions "${OUTPUT}"
