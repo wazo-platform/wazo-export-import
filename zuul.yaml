@@ -1,4 +1,4 @@
 - project:
     templates:
-      - wazo-tox-linters-310
-      - wazo-tox-py39
+      - wazo-tox-linters-py311
+      - wazo-tox-py311
