@@ -1,4 +1,4 @@
-# Copyright 2021-2023 The Wazo Authors  (see the AUTHORS file)
+# Copyright 2021-2026 The Wazo Authors  (see the AUTHORS file)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import json
@@ -46,9 +46,8 @@ class WazoAPI:
             "localhost",
             username=username,
             password=password,
-            prefix=None,
             https=False,
-            port=9497,
+            port=80,
         )
         self._confd_client = ConfdClient(
             "localhost",
